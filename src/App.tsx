@@ -1,17 +1,18 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import SelectVersion from './components/SelectVersion';
-import { RecoilRoot } from 'recoil';
-import SelectAlbumCover from './components/SelectAlbumCover';
-
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { RecoilRoot } from "recoil";
+import SelectAlbumCoverPage from "./pages/SelectAlbumCoverPage";
+import SelectVersionPage from "./pages/SelectVersionPage";
 
 function App() {
   return (
     <RecoilRoot>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<SelectVersion />} />
-          <Route path="/select-album-cover" element={<SelectAlbumCover />} />
+          <Route path="/" element={<SelectVersionPage />} />
+          <Route
+            path="/select-album-cover"
+            element={<SelectAlbumCoverPage />}
+          />
         </Routes>
       </BrowserRouter>
     </RecoilRoot>
