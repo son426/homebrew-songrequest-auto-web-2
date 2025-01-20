@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import styled from "styled-components";
 import MinusIcon from "../assets/pitchminus.svg";
 import PlusIcon from "../assets/pitchplus.svg";
 import { useSetRecoilState } from "recoil";
 import { selectedSongState } from "../atom";
 import { useNavigate } from "react-router-dom";
+import { User } from "../types/schema";
 
 interface AudioPair {
   mrUrl: string;
@@ -49,6 +49,8 @@ const SelectVersionPage: React.FC = () => {
   const [selectedFinal, setSelectedFinal] = useState<boolean>(false);
   const setSelectedSong = useSetRecoilState(selectedSongState);
   const navigate = useNavigate();
+
+  const [userInfo, setUserInfo] = useState<User | null>(null);
 
   useEffect(() => {
     const mockData: InferenceData = {
@@ -280,11 +282,50 @@ const SelectVersionPage: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const getUserInfo = () => {
+      if (window.USER_INFO) {
+        setUserInfo(window.USER_INFO);
+        console.log("Received user info:", window.USER_INFO);
+      }
+    };
+
+    // 페이지 로드 시 즉시 확인
+    getUserInfo();
+
+    // window.USER_INFO가 나중에 설정될 경우를 대비한 이벤트 리스너
+    window.addEventListener("message", (event) => {
+      const data = event.data;
+      if (data?.type === "USER_INFO") {
+        setUserInfo(data.payload);
+      }
+    });
+  }, []);
+
   return (
     <div className="min-h-screen bg-black p-5 pb-20 text-white">
       <h1 className="mb-8 text-lg">
         가장 마음에 드는 1개 버전을 선택해주세요.
       </h1>
+
+      {userInfo && (
+        <div className="mb-6 rounded-lg bg-neutral-800/70 p-4 backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h2 className="font-medium text-yellow-400">
+                {userInfo.userName}
+              </h2>
+              <p className="text-sm text-neutral-300">{userInfo.email}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-neutral-300">크레딧</p>
+              <p className="font-medium text-yellow-400">
+                {userInfo.credit.balance.toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <audio
         ref={audioRef}
@@ -295,7 +336,7 @@ const SelectVersionPage: React.FC = () => {
       {versionGroups.map((group, index) => (
         <div
           key={index}
-          onClick={() => handlePlayPause(group.version, index)}
+          // onClick={() => handlePlayPause(group.version, index)}
           className={`relative mb-5 cursor-pointer rounded-xl p-4 transition-all duration-200 hover:bg-neutral-900 active:scale-[0.99] ${
             selectedVersion === index ? "bg-neutral-800" : "bg-black"
           }`}
