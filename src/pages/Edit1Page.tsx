@@ -38,7 +38,6 @@ const Edit1Page: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const setSongMeta = useSetRecoilState(selectedSongMetaState);
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -127,7 +126,16 @@ const Edit1Page: React.FC = () => {
     }
   }, [versionGroups]);
 
-  const handlePlayPause = async (version: string, index: number) => {
+  const handlePlayPause = async (
+    version: string,
+    index: number,
+    e?: React.MouseEvent
+  ) => {
+    // 이벤트가 있는 경우 버블링 방지
+    if (e) {
+      e.stopPropagation();
+    }
+
     if (audioRef.current) {
       try {
         if (selectedVersion !== index) {
@@ -141,17 +149,12 @@ const Edit1Page: React.FC = () => {
           }
 
           setSelectedVersion(index);
-          const firstAudioPair = versionGroups[index].pitchGroups[0].audioPair;
+          const firstAudioPair =
+            versionGroups[index].pitchGroups[currentPitchIndex].audioPair;
 
           audioRef.current.src = encodeURI(firstAudioPair.resultUrl);
-          console.log("Playing URL:", encodeURI(firstAudioPair.resultUrl));
           audioRef.current.load();
           audioRef.current.currentTime = playerStates[index].currentTime;
-
-          console.log("\n=== Now Playing ===");
-          console.log(`Version: ${version}`);
-          console.log(`Pitch: ${versionGroups[index].pitchGroups[0].pitch}`);
-          console.log(`URL: ${firstAudioPair.resultUrl}`);
         }
 
         const newPlayerStates = playerStates.map((state, i) => ({
@@ -167,6 +170,56 @@ const Edit1Page: React.FC = () => {
         }
       } catch (error) {
         console.log("Audio playback error:", error);
+      }
+    }
+  };
+
+  const handleProgressChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    e.stopPropagation();
+    const time = Number(e.target.value);
+    if (audioRef.current && selectedVersion === index) {
+      audioRef.current.currentTime = time;
+      const newPlayerStates = [...playerStates];
+      newPlayerStates[index] = {
+        ...newPlayerStates[index],
+        currentTime: time,
+      };
+      setPlayerStates(newPlayerStates);
+    }
+  };
+
+  const handlePitchChange = (
+    e: React.MouseEvent,
+    index: number,
+    direction: "up" | "down"
+  ) => {
+    e.stopPropagation();
+    if (!versionGroups[index]) return;
+
+    const pitchGroups = versionGroups[index].pitchGroups;
+    let newPitchIndex = currentPitchIndex;
+
+    if (direction === "up" && currentPitchIndex < pitchGroups.length - 1) {
+      newPitchIndex = currentPitchIndex + 1;
+    } else if (direction === "down" && currentPitchIndex > 0) {
+      newPitchIndex = currentPitchIndex - 1;
+    }
+
+    if (newPitchIndex !== currentPitchIndex) {
+      setCurrentPitchIndex(newPitchIndex);
+      if (audioRef.current) {
+        const newAudioPair = pitchGroups[newPitchIndex].audioPair;
+        const currentTime = audioRef.current.currentTime;
+        audioRef.current.src = newAudioPair.resultUrl;
+        audioRef.current.load();
+        audioRef.current.currentTime = currentTime;
+
+        if (playerStates[index]?.isPlaying) {
+          audioRef.current.play();
+        }
       }
     }
   };
@@ -193,54 +246,6 @@ const Edit1Page: React.FC = () => {
     }
   };
 
-  const handleProgressChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    index: number
-  ) => {
-    const time = Number(e.target.value);
-    if (audioRef.current && selectedVersion === index) {
-      audioRef.current.currentTime = time;
-      const newPlayerStates = [...playerStates];
-      newPlayerStates[index] = {
-        ...newPlayerStates[index],
-        currentTime: time,
-      };
-      setPlayerStates(newPlayerStates);
-    }
-  };
-
-  const handlePitchChange = (index: number, direction: "up" | "down") => {
-    if (!versionGroups[index]) return;
-
-    const pitchGroups = versionGroups[index].pitchGroups;
-    let newPitchIndex = currentPitchIndex;
-
-    if (direction === "up" && currentPitchIndex < pitchGroups.length - 1) {
-      newPitchIndex = currentPitchIndex + 1;
-    } else if (direction === "down" && currentPitchIndex > 0) {
-      newPitchIndex = currentPitchIndex - 1;
-    }
-
-    if (newPitchIndex !== currentPitchIndex) {
-      setCurrentPitchIndex(newPitchIndex);
-
-      if (audioRef.current) {
-        const newAudioPair = pitchGroups[newPitchIndex].audioPair;
-        const currentTime = audioRef.current.currentTime; // 현재 재생 위치 저장
-
-        audioRef.current.src = newAudioPair.resultUrl;
-        audioRef.current.load();
-
-        // 이전 재생 위치로 복원
-        audioRef.current.currentTime = currentTime;
-
-        if (playerStates[index]?.isPlaying) {
-          audioRef.current.play();
-        }
-      }
-    }
-  };
-
   const handleSelectComplete = () => {
     if (selectedVersion !== null && transaction) {
       const selectedAudioPair =
@@ -253,7 +258,7 @@ const Edit1Page: React.FC = () => {
         requestUserId: transaction.userId,
         resultAudioUrl: selectedAudioPair.resultUrl,
       };
-      console.log("selectedData : " + selectedData);
+      // console.log("selectedData : " + selectedData);
       setSongMeta((prev) => ({
         audioUrl: selectedAudioPair.resultUrl,
         artwork: prev?.artwork || null, // artwork를 optional이 아닌 string | null로 명시
@@ -280,18 +285,18 @@ const Edit1Page: React.FC = () => {
       {versionGroups.map((group, index) => (
         <div
           key={index}
-          // onClick={() => handlePlayPause(group.version, index)}
+          onClick={() => handlePlayPause(group.version, index)}
           className={`relative mb-5 cursor-pointer rounded-xl p-4 transition-all duration-200 hover:bg-neutral-900 active:scale-[0.99] ${
             selectedVersion === index ? "bg-neutral-800" : "bg-black"
           }`}
         >
           {selectedVersion === index && (
-            <div className="absolute right-4 top-4 flex items-center gap-2">
+            <div
+              className="absolute right-4 top-4 flex items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePitchChange(index, "down");
-                }}
+                onClick={(e) => handlePitchChange(e, index, "down")}
                 className="flex h-6 w-6 items-center justify-center text-yellow-400 focus:outline-none active:opacity-70"
               >
                 <img src={MinusIcon} alt="decrease pitch" className="w-full" />
@@ -300,10 +305,7 @@ const Edit1Page: React.FC = () => {
                 {versionGroups[index].pitchGroups[currentPitchIndex].pitch}
               </span>
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePitchChange(index, "up");
-                }}
+                onClick={(e) => handlePitchChange(e, index, "up")}
                 className="flex h-6 w-6 items-center justify-center text-yellow-400 focus:outline-none active:opacity-70"
               >
                 <img src={PlusIcon} alt="increase pitch" className="w-full" />
@@ -313,12 +315,12 @@ const Edit1Page: React.FC = () => {
 
           <div className="mb-3 text-base">Ver {parseInt(group.version)}.</div>
 
-          <div className="flex w-full items-center gap-3">
+          <div
+            className="flex w-full items-center gap-3"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePlayPause(group.version, index);
-              }}
+              onClick={(e) => handlePlayPause(group.version, index, e)}
               className="text-2xl text-yellow-400 focus:outline-none active:opacity-70"
             >
               {playerStates[index]?.isPlaying ? "■" : "▶"}
@@ -330,10 +332,7 @@ const Edit1Page: React.FC = () => {
                 min="0"
                 max={playerStates[index]?.duration || 0}
                 value={playerStates[index]?.currentTime || 0}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  handleProgressChange(e, index);
-                }}
+                onChange={(e) => handleProgressChange(e, index)}
                 className="h-1 flex-1 appearance-none rounded-full bg-neutral-600 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-yellow-400"
               />
               <span className="min-w-[30px] text-sm text-yellow-400">
@@ -363,4 +362,5 @@ const Edit1Page: React.FC = () => {
     </div>
   );
 };
+
 export default Edit1Page;

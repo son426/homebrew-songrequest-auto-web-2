@@ -30,37 +30,63 @@ const HomePage: React.FC = () => {
   const [selectedTransaction, setSelectedTransaction] = useRecoilState(
     selectedTransactionState
   );
+  const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
 
+  // User Info 초기화 및 업데이트 처리
   useEffect(() => {
-    const getUserInfo = () => {
-      if (window.USER_INFO) {
-        setUserInfo(window.USER_INFO);
-        console.log("Received user info:", window.USER_INFO);
+    // 1. 초기 userInfo 설정
+    if (window.USER_INFO) {
+      console.log("Initial USER_INFO:", window.USER_INFO);
+      setUserInfo(window.USER_INFO);
+    }
+
+    // 2. window.updateUserState 함수 설정
+    window.updateUserState = (newUserInfo: User) => {
+      console.log("User state updated:", newUserInfo);
+      setUserInfo(newUserInfo);
+    };
+
+    // 3. 메시지 이벤트 핸들러
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data?.type === "USER_INFO_CHECK" || data?.type === "USER_INFO") {
+          const newUserInfo = data.data || data.payload;
+          if (newUserInfo) {
+            console.log("Received user update:", newUserInfo);
+            setUserInfo(newUserInfo);
+          }
+        }
+      } catch (error) {
+        console.error("Error processing message:", error);
       }
     };
 
-    getUserInfo();
+    window.addEventListener("message", handleMessage);
 
-    window.addEventListener("message", (event) => {
-      const data = event.data;
-      if (data?.type === "USER_INFO") {
-        setUserInfo(data.payload);
-      }
-    });
+    // Cleanup
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      delete window.updateUserState;
+    };
   }, []);
 
   useEffect(() => {
     const fetchBrewingTransactions = async () => {
-      // if (!userInfo?.userId) return;
+      if (!userInfo?.userId) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const db = getFirestore();
         const brewingRef = collection(db, Collections.AUTO_BREWING_TRANSACTION);
         const q = query(
           brewingRef,
-          // where("userId", "==", userInfo.userId || DUMMY_USER_ID),
-          where("userId", "==", DUMMY_USER_ID),
+          where("userId", "==", userInfo.userId),
+          // where("userId", "==", DUMMY_USER_ID),
           orderBy("timestamp", "desc")
         );
 
@@ -113,6 +139,8 @@ const HomePage: React.FC = () => {
         }
       } catch (error) {
         console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -151,19 +179,52 @@ const HomePage: React.FC = () => {
     );
   };
 
-  // if (!userInfo?.userId) {
-  //   return (
-  //     <div className="min-h-screen bg-black p-5 flex flex-col items-center justify-center text-white">
-  //       <p className="text-lg mb-4">로그인 후에 제조가 가능해요!</p>
-  //       <button
-  //         onClick={handleSignInClick}
-  //         className="px-6 py-3 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-500 transition-colors"
-  //       >
-  //         로그인하기
-  //       </button>
-  //     </div>
-  //   );
-  // }
+  const handleNavigateToMake = () => {
+    window.ReactNativeWebView?.postMessage(
+      JSON.stringify({
+        type: "NAVIGATION",
+        screen: "Make",
+      })
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (!userInfo?.userId) {
+    return (
+      <div className="min-h-screen bg-black p-5 flex flex-col items-center justify-center text-white">
+        <p className="text-lg mb-4">로그인 후에 제조가 가능해요!</p>
+        <button
+          onClick={handleSignInClick}
+          className="px-6 py-3 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-500 transition-colors"
+        >
+          로그인하기
+        </button>
+      </div>
+    );
+  }
+
+  if (brewingTransactions.length === 0 && completedSongs.length === 0) {
+    return (
+      <div className="min-h-screen bg-black p-5 flex flex-col items-center justify-center text-white">
+        <div className="flex flex-col items-center">
+          <p className="text-lg mb-4">아직 제작한 노래가 없어요!</p>
+          <button
+            onClick={handleNavigateToMake}
+            className="px-6 py-3 bg-yellow-400 text-black rounded-lg font-medium hover:bg-yellow-500 transition-colors"
+          >
+            노래 만들러 가기
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black p-5 pb-20 text-white">
@@ -281,7 +342,7 @@ const HomePage: React.FC = () => {
                     : "bg-red-400/10 text-red-400"
                 }`}
               >
-                {transaction.status.toUpperCase()}
+                {transaction.status === "pending" ? "대기" : "실패"}
               </div>
             </div>
           </div>

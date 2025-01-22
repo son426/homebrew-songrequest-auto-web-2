@@ -10,7 +10,7 @@ import {
   updateSongRequestToComplete,
 } from "../services/songRequestService";
 
-const EditPage2 = () => {
+const Edit2Page = () => {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const [totalArtistImageList, setTotalArtistImageList] = useState<string[]>(
@@ -37,7 +37,7 @@ const EditPage2 = () => {
           getDownloadURL(imageRef)
         );
         const urls = await Promise.all(urlPromises);
-        setTotalArtistImageList(urls);
+        setTotalArtistImageList([...urls, "default"]);
       } catch (error) {
         console.error("썸네일 이미지 가져오기 실패:", error);
       }
@@ -65,7 +65,10 @@ const EditPage2 = () => {
 
     setIsLoading(true);
     try {
-      const selectedThumbnailUrl = totalArtistImageList[selectedImage];
+      const selectedThumbnailUrl =
+        totalArtistImageList[selectedImage] === "default"
+          ? ""
+          : totalArtistImageList[selectedImage];
 
       // 1. 곡 추가
       const newSongId = await addNewSong({
@@ -98,43 +101,36 @@ const EditPage2 = () => {
         "completed"
       );
 
-      console.log(
-        `${{
-          artistId: selectedTransaction.existingArtist?.artistId || "",
-          artistName: selectedTransaction.artistName,
-          title: selectedTransaction.songTitle,
-          thumbnailUrl: selectedThumbnailUrl,
-          youtubeId: "",
-          tagList: selectedTransaction.existingArtist?.tagList || [],
-          isAI: true,
-          makerUserId: selectedTransaction.userId,
-          tag: {
-            genreList: selectedTransaction.existingArtist?.tag.genreList || [],
-            tagList: selectedTransaction.existingArtist?.tagList || [],
-          },
-          url: songMeta.audioUrl || undefined,
-        }}`
-      );
-
       setIsLoading(false);
       setIsCompleted(true);
     } catch (error) {
       console.error("곡 추가 실패:", error);
+
+      // 에러 메시지 생성
+      let errorMessage = "알 수 없는 오류가 발생했습니다.";
+      if (error instanceof Error) {
+        errorMessage = `오류 발생: ${error.message}`;
+        // Firebase 에러의 경우 추가 정보 표시
+        if ("code" in error) {
+          errorMessage += `\n에러 코드: ${(error as any).code}`;
+        }
+      }
+
       if (selectedTransaction) {
         try {
           await updateBrewingTransactionStatus(
             selectedTransaction.transactionId,
             "",
             "failed",
-            error instanceof Error
-              ? error.message
-              : "알 수 없는 오류가 발생했습니다."
+            errorMessage
           );
         } catch (updateError) {
           console.error("상태 업데이트 실패:", updateError);
+          errorMessage += "\n상태 업데이트도 실패했습니다.";
         }
       }
-      alert("곡 추가에 실패했습니다.");
+
+      alert(errorMessage);
       setIsLoading(false);
     }
   };
@@ -142,7 +138,7 @@ const EditPage2 = () => {
   const handleNavigateToHome = () => {
     resetTransaction();
     resetSongMeta();
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   return (
@@ -152,9 +148,9 @@ const EditPage2 = () => {
         <StatusModal isLoading={isLoading} onComplete={handleNavigateToHome} />
       )}
 
-      {/* Main Container */}
-      <div className="flex flex-col h-screen">
-        {/* Header Section - edit1과 동일한 스타일 적용 */}
+      {/* Scrollable Content Area - 헤더를 포함한 전체 영역이 스크롤됨 */}
+      <div className="h-full overflow-y-auto custom-scrollbar">
+        {/* Header Section */}
         <div className="p-5">
           <div className="mb-8">
             <h1 className="text-lg mb-0.5 text-white">앨범 커버 선택</h1>
@@ -164,8 +160,8 @@ const EditPage2 = () => {
           </div>
         </div>
 
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto px-5 custom-scrollbar">
+        {/* Grid Content */}
+        <div className="px-5">
           <div className="grid grid-cols-2 gap-4 pb-24">
             {totalArtistImageList.map((cover, index) => (
               <div
@@ -178,11 +174,24 @@ const EditPage2 = () => {
                       : ""
                   }`}
               >
-                <img
-                  src={cover}
-                  alt={`앨범 커버 ${index + 1}`}
-                  className="h-full w-full object-cover"
-                />
+                {cover === "default" ? (
+                  <div className="h-full w-full bg-neutral-900 flex items-center justify-center">
+                    <svg
+                      className="w-12 h-12 text-neutral-500"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                    </svg>
+                  </div>
+                ) : (
+                  <img
+                    src={cover}
+                    alt={`앨범 커버 ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                )}
                 {selectedImage === index && (
                   <div className="absolute inset-0 bg-yellow-400 bg-opacity-10" />
                 )}
@@ -190,22 +199,22 @@ const EditPage2 = () => {
             ))}
           </div>
         </div>
+      </div>
 
-        {/* Fixed Button Area - edit1과 유사한 그라데이션 스타일 적용 */}
-        <div className="fixed inset-x-0 bottom-0 z-50 bg-gradient-to-t from-black via-black to-transparent pb-5 pt-10">
-          <button
-            onClick={handleComplete}
-            disabled={selectedImage === null || isLoading || isCompleted}
-            className={`mx-5 w-[calc(100%-40px)] rounded-xl py-4 text-base font-bold
-              ${
-                selectedImage === null || isLoading || isCompleted
-                  ? "cursor-not-allowed bg-neutral-600 opacity-50"
-                  : "cursor-pointer bg-yellow-400"
-              }`}
-          >
-            완성곡 받기
-          </button>
-        </div>
+      {/* Fixed Button Area */}
+      <div className="fixed inset-x-0 bottom-0 z-50 bg-gradient-to-t from-black via-black to-transparent pb-5 pt-10">
+        <button
+          onClick={handleComplete}
+          disabled={selectedImage === null || isLoading || isCompleted}
+          className={`mx-5 w-[calc(100%-40px)] rounded-xl py-4 text-base font-bold
+            ${
+              selectedImage === null || isLoading || isCompleted
+                ? "cursor-not-allowed bg-neutral-600 opacity-50"
+                : "cursor-pointer bg-yellow-400"
+            }`}
+        >
+          완성곡 받기
+        </button>
       </div>
     </div>
   );
@@ -261,4 +270,4 @@ const StatusModal = ({
   );
 };
 
-export default EditPage2;
+export default Edit2Page;
