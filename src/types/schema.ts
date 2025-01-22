@@ -272,10 +272,46 @@ export enum Collections {
   UPDATE = "Update",
   CREDIT_TRANSACTION = "CreditTransaction",
   BREWING_TRANSACTION = "BrewingTransaction",
+  AUTO_BREWING_TRANSACTION = "AutoBrewingTransaction",
   PENDING_BREWING_TRANSACTION = "PendingBrewingTransaction",
   GUIDE = "Guide",
   ORIGINAL_SONG = "OriginalSong",
 }
+
+export type AudioPair2 = {
+  mrUrl: string;
+  vocalUrl: string;
+  resultUrl: string;
+  pitch: number;
+};
+
+export type AutoBrewingTransaction = {
+  transactionId: string;
+  timestamp: any;
+  type: string;
+  songRequestId: string;
+  songId: string;
+  songTitle: string;
+  artistName: string;
+  existingArtist: Artist | null;
+  audioPairList: AudioPair2[];
+  status: "completed" | "failed" | "pending";
+  error?: string;
+  userId: string;
+  userName: string;
+  userFcmToken: string;
+  updatedUserIdList: string[];
+  targetUserInfoList: {
+    // 알림을 보내야 할 유저 정보
+    userId: string;
+    userToken?: string; // FCM 토큰
+  }[];
+  notificationsSent: {
+    userId: string;
+    status: "completed" | "failed";
+    error?: string;
+  }[];
+};
 
 export enum Genre {
   BALLAD = "ballad",

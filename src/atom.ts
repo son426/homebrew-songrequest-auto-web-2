@@ -1,17 +1,22 @@
-import { atom } from 'recoil';
+import { atom } from "recoil";
+import { AutoBrewingTransaction, User } from "./types/schema";
 
-interface SelectedSongData {
-  songRequestId: string;
-  songTitle: string;
-  guideId: string;
-  voiceModel: string;
-  isMan: boolean;
-  requestAt: string;
-  requestUserId: string;
-  resultAudioUrl: string;
-}
+export const userState = atom<User | null>({
+  key: "userState",
+  default: null,
+});
 
-export const selectedSongState = atom<SelectedSongData | null>({
-  key: 'selectedSongState',
+export const selectedTransactionState = atom<AutoBrewingTransaction | null>({
+  key: "selectedTransactionState",
+  default: null,
+});
+
+type SongMeta = {
+  audioUrl: string | null;
+  artwork: string | null;
+};
+
+export const selectedSongMetaState = atom<SongMeta | null>({
+  key: "selectedSongMetaState",
   default: null,
 });

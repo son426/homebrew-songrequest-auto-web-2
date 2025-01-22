@@ -2,32 +2,21 @@ import React, { useState, useEffect, useRef } from "react";
 import MinusIcon from "../assets/pitchminus.svg";
 import PlusIcon from "../assets/pitchplus.svg";
 import { useSetRecoilState } from "recoil";
-import { selectedSongState } from "../atom";
-import { useNavigate } from "react-router-dom";
-import { User } from "../types/schema";
-
-interface AudioPair {
-  mrUrl: string;
-  vocalUrl: string;
-  resultUrl: string;
-}
-
-interface InferenceData {
-  songRequestId: string;
-  songTitle: string;
-  guideId: string;
-  voiceModel: string;
-  isMan: boolean;
-  requestAt: string;
-  requestUserId: string;
-  audioPairList: AudioPair[];
-}
+import { useNavigate, useParams } from "react-router-dom";
+import { AutoBrewingTransaction, Collections } from "../types/schema";
+import { collection, query, getDocs, where } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { selectedSongMetaState } from "../atom";
 
 interface VersionGroup {
   version: string;
   pitchGroups: {
     pitch: string;
-    audioPair: AudioPair;
+    audioPair: {
+      mrUrl: string;
+      vocalUrl: string;
+      resultUrl: string;
+    };
   }[];
 }
 
@@ -37,114 +26,94 @@ interface PlayerState {
   isPlaying: boolean;
 }
 
-const SelectVersionPage: React.FC = () => {
-  const [inferenceData, setInferenceData] = useState<InferenceData | null>(
+const Edit1Page: React.FC = () => {
+  const { transactionId } = useParams();
+  const [transaction, setTransaction] = useState<AutoBrewingTransaction | null>(
     null
   );
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [versionGroups, setVersionGroups] = useState<VersionGroup[]>([]);
   const [playerStates, setPlayerStates] = useState<PlayerState[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentPitchIndex, setCurrentPitchIndex] = useState<number>(0);
-  const [selectedFinal, setSelectedFinal] = useState<boolean>(false);
-  const setSelectedSong = useSetRecoilState(selectedSongState);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const setSongMeta = useSetRecoilState(selectedSongMetaState);
+
   const navigate = useNavigate();
 
-  const [userInfo, setUserInfo] = useState<User | null>(null);
-
   useEffect(() => {
-    const mockData: InferenceData = {
-      songRequestId: "mock-123",
-      songTitle: "테스트 곡",
-      guideId: "guide-123",
-      voiceModel: "model-1",
-      isMan: true,
-      requestAt: "2024-03-20T12:00:00Z",
-      requestUserId: "user-123",
-      audioPairList: [
-        {
-          mrUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_mr.mp3",
-          vocalUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_reverb.mp3",
-          resultUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[-1]1_result.mp3",
-        },
-        {
-          mrUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_mr.mp3",
-          vocalUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_reverb.mp3",
-          resultUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[-1]2_result.mp3",
-        },
-        {
-          mrUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_mr.mp3",
-          vocalUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_reverb.mp3",
-          resultUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0]1_result.mp3",
-        },
-        {
-          mrUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_mr.mp3",
-          vocalUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_reverb.mp3",
-          resultUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0]2_result.mp3",
-        },
-        {
-          mrUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_mr.mp3",
-          vocalUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_reverb.mp3",
-          resultUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[1]1_result.mp3",
-        },
-        {
-          mrUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_mr.mp3",
-          vocalUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[0][model1]test/version1_reverb.mp3",
-          resultUrl:
-            "https://song-request-bucket-1.s3.ap-northeast-2.amazonaws.com/song-requests/Z9LwMPQx/[1]2_result.mp3",
-        },
-      ],
-    };
+    const fetchTransaction = async () => {
+      if (!transactionId) return;
 
-    setInferenceData(mockData);
+      try {
+        const brewingRef = collection(db, Collections.AUTO_BREWING_TRANSACTION);
+        const q = query(
+          brewingRef,
+          where("transactionId", "==", transactionId)
+        );
+        const querySnapshot = await getDocs(q);
 
-    const groupByVersion = (audioPairs: AudioPair[]): VersionGroup[] => {
-      const groups: {
-        [key: string]: { pitch: string; audioPair: AudioPair }[];
-      } = {};
+        if (!querySnapshot.empty) {
+          const transactionData =
+            querySnapshot.docs[0].data() as AutoBrewingTransaction;
+          setTransaction(transactionData);
 
-      audioPairs.forEach((pair) => {
-        const match = pair.resultUrl.match(/\[([^\]]+)\](\d+)_result\.mp3$/);
-        if (match) {
-          const [, pitch, version] = match;
-          if (!groups[version]) {
-            groups[version] = [];
-          }
-          groups[version].push({ pitch, audioPair: pair });
+          const groups = groupAudioPairs(transactionData.audioPairList);
+          setVersionGroups(groups);
         }
-      });
-
-      return Object.entries(groups)
-        .sort((a, b) => Number(a[0]) - Number(b[0]))
-        .map(([version, pitchGroups]) => ({
-          version,
-          pitchGroups: pitchGroups.sort(
-            (a, b) => Number(a.pitch) - Number(b.pitch)
-          ),
-        }));
+      } catch (error) {
+        console.error("Error fetching transaction:", error);
+      }
     };
 
-    if (mockData.audioPairList) {
-      setVersionGroups(groupByVersion(mockData.audioPairList));
-    }
-  }, []);
+    fetchTransaction();
+  }, [transactionId]);
+
+  const groupAudioPairs = (audioPairs: any[]) => {
+    const groups: { [key: string]: any[] } = {};
+
+    audioPairs.forEach((pair) => {
+      // 파일 경로에서 숫자_파일명 부분 추출
+      const versionMatch = pair.resultUrl.match(/\/(\d+)_[^\/]+_result\.mp3$/);
+      // URL에서 [pitch] 값 추출
+      const pitchMatch = pair.resultUrl.match(/\[([^\]]+)\]/);
+
+      if (versionMatch && pitchMatch) {
+        const version = versionMatch[1]; // 버전 번호 (0, 1, 2, ...)
+        const pitch = pitchMatch[1]; // pitch 값
+
+        if (!groups[version]) {
+          groups[version] = [];
+        }
+
+        groups[version].push({
+          pitch,
+          audioPair: pair,
+        });
+      }
+    });
+
+    // 버전별로 정렬하고, 각 버전 내에서 pitch별로 정렬
+    const result = Object.entries(groups)
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+      .map(([version, pitchGroups]) => ({
+        version,
+        pitchGroups: pitchGroups.sort(
+          (a, b) => Number(a.pitch) - Number(b.pitch)
+        ),
+      }));
+
+    // 그룹핑 결과 로깅
+    console.log("=== Grouped Audio Pairs ===");
+    result.forEach((group, i) => {
+      console.log(`\nVersion ${group.version}:`);
+      group.pitchGroups.forEach((pg) => {
+        console.log(`- Pitch ${pg.pitch}: ${pg.audioPair.resultUrl}`);
+      });
+    });
+
+    return result;
+  };
 
   useEffect(() => {
     if (versionGroups.length > 0) {
@@ -173,9 +142,16 @@ const SelectVersionPage: React.FC = () => {
 
           setSelectedVersion(index);
           const firstAudioPair = versionGroups[index].pitchGroups[0].audioPair;
-          audioRef.current.src = firstAudioPair.resultUrl;
+
+          audioRef.current.src = encodeURI(firstAudioPair.resultUrl);
+          console.log("Playing URL:", encodeURI(firstAudioPair.resultUrl));
           audioRef.current.load();
           audioRef.current.currentTime = playerStates[index].currentTime;
+
+          console.log("\n=== Now Playing ===");
+          console.log(`Version: ${version}`);
+          console.log(`Pitch: ${versionGroups[index].pitchGroups[0].pitch}`);
+          console.log(`URL: ${firstAudioPair.resultUrl}`);
         }
 
         const newPlayerStates = playerStates.map((state, i) => ({
@@ -250,8 +226,13 @@ const SelectVersionPage: React.FC = () => {
 
       if (audioRef.current) {
         const newAudioPair = pitchGroups[newPitchIndex].audioPair;
+        const currentTime = audioRef.current.currentTime; // 현재 재생 위치 저장
+
         audioRef.current.src = newAudioPair.resultUrl;
         audioRef.current.load();
+
+        // 이전 재생 위치로 복원
+        audioRef.current.currentTime = currentTime;
 
         if (playerStates[index]?.isPlaying) {
           audioRef.current.play();
@@ -261,71 +242,31 @@ const SelectVersionPage: React.FC = () => {
   };
 
   const handleSelectComplete = () => {
-    if (selectedVersion !== null && inferenceData) {
+    if (selectedVersion !== null && transaction) {
       const selectedAudioPair =
         versionGroups[selectedVersion].pitchGroups[currentPitchIndex].audioPair;
 
       const selectedData = {
-        songRequestId: inferenceData.songRequestId,
-        songTitle: inferenceData.songTitle,
-        guideId: inferenceData.guideId,
-        voiceModel: inferenceData.voiceModel,
-        isMan: inferenceData.isMan,
-        requestAt: inferenceData.requestAt,
-        requestUserId: inferenceData.requestUserId,
+        songRequestId: transaction.songRequestId,
+        songTitle: transaction.songTitle,
+        requestAt: transaction.timestamp,
+        requestUserId: transaction.userId,
         resultAudioUrl: selectedAudioPair.resultUrl,
       };
-
-      setSelectedSong(selectedData);
-      setSelectedFinal(true);
-      navigate("/select-album-cover");
+      console.log("selectedData : " + selectedData);
+      setSongMeta((prev) => ({
+        audioUrl: selectedAudioPair.resultUrl,
+        artwork: prev?.artwork || null, // artwork를 optional이 아닌 string | null로 명시
+      }));
+      navigate("/edit2");
     }
   };
-
-  useEffect(() => {
-    const getUserInfo = () => {
-      if (window.USER_INFO) {
-        setUserInfo(window.USER_INFO);
-        console.log("Received user info:", window.USER_INFO);
-      }
-    };
-
-    // 페이지 로드 시 즉시 확인
-    getUserInfo();
-
-    // window.USER_INFO가 나중에 설정될 경우를 대비한 이벤트 리스너
-    window.addEventListener("message", (event) => {
-      const data = event.data;
-      if (data?.type === "USER_INFO") {
-        setUserInfo(data.payload);
-      }
-    });
-  }, []);
 
   return (
     <div className="min-h-screen bg-black p-5 pb-20 text-white">
       <h1 className="mb-8 text-lg">
         가장 마음에 드는 1개 버전을 선택해주세요.
       </h1>
-
-      {userInfo && (
-        <div className="mb-6 rounded-lg bg-neutral-800/70 p-4 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h2 className="font-medium text-yellow-400">
-                {userInfo.userName}
-              </h2>
-              <p className="text-sm text-neutral-300">{userInfo.email}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-neutral-300">크레딧</p>
-              <p className="font-medium text-yellow-400">
-                {userInfo.credit.balance.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       <audio
         ref={audioRef}
@@ -417,4 +358,4 @@ const SelectVersionPage: React.FC = () => {
     </div>
   );
 };
-export default SelectVersionPage;
+export default Edit1Page;
