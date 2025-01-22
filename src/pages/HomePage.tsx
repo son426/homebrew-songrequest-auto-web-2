@@ -187,8 +187,10 @@ const HomePage: React.FC = () => {
       )} */}
 
       <div className="mb-8 ">
-        <h1 className="text-lg mb-0.5">나만의 노래 보관함</h1>
-        <p className="text-sm text-neutral-400">직접 노래를 만들어보세요!</p>
+        <h1 className="text-lg mb-0.5">노래 제작소</h1>
+        <p className="text-sm text-neutral-400">
+          노래를 듣고 직접 만들어보세요!
+        </p>
       </div>
 
       <div className="space-y-4">

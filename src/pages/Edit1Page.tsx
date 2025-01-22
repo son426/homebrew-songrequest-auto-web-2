@@ -264,9 +264,12 @@ const Edit1Page: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black p-5 pb-20 text-white">
-      <h1 className="mb-8 text-lg">
-        가장 마음에 드는 1개 버전을 선택해주세요.
-      </h1>
+      <div className="mb-8">
+        <h1 className="text-lg mb-0.5">오디오 선택</h1>
+        <p className="text-sm text-neutral-400">
+          들어보고 마음에 드는 버전을 선택해주세요!
+        </p>
+      </div>
 
       <audio
         ref={audioRef}
@@ -344,17 +347,19 @@ const Edit1Page: React.FC = () => {
         </div>
       ))}
 
-      <button
-        disabled={selectedVersion === null}
-        onClick={handleSelectComplete}
-        className={`fixed bottom-5 left-5 right-5 z-50 rounded-xl py-4 text-base font-bold ${
-          selectedVersion === null
-            ? "cursor-not-allowed bg-neutral-600 opacity-50"
-            : "cursor-pointer bg-yellow-400"
-        }`}
-      >
-        선택 완료
-      </button>
+      <div className="fixed inset-x-0 bottom-0 z-50 bg-gradient-to-t from-black via-black to-transparent pb-5 pt-10">
+        <button
+          disabled={selectedVersion === null}
+          onClick={handleSelectComplete}
+          className={`mx-5 w-[calc(100%-40px)] rounded-xl py-4 text-base font-bold ${
+            selectedVersion === null
+              ? "cursor-not-allowed bg-neutral-600 opacity-50"
+              : "cursor-pointer bg-yellow-400"
+          }`}
+        >
+          선택 완료
+        </button>
+      </div>
     </div>
   );
 };

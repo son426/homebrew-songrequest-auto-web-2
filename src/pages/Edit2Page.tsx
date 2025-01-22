@@ -151,6 +151,13 @@ const EditPage2 = () => {
         <StatusModal isLoading={isLoading} onComplete={handleNavigateToHome} />
       )}
 
+      <div className="mb-8">
+        <h1 className="text-lg mb-0.5">앨범 커버 선택</h1>
+        <p className="text-sm text-neutral-400">
+          마음에 드는 이미지를 선택해주세요!
+        </p>
+      </div>
+
       <h2 className="py-6 text-center text-xl font-semibold text-white">
         앨범 커버를 골라주세요!
       </h2>
