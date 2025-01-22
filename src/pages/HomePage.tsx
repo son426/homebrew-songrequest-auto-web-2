@@ -167,32 +167,33 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black p-5 pb-20 text-white">
+      {/* User Info Section - Commented out for now */}
       {/* {userInfo && (
-        <div className="mb-6 rounded-lg bg-neutral-800/70 p-4 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h2 className="font-medium text-yellow-400">
-                {userInfo.userName}
-              </h2>
-              <p className="text-sm text-neutral-300">{userInfo.email}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-neutral-300">크레딧</p>
-              <p className="font-medium text-yellow-400">
-                {userInfo.credit.balance.toLocaleString()}
-              </p>
-            </div>
+      <div className="mb-6 rounded-lg bg-neutral-800/70 p-4 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h2 className="font-medium text-yellow-400">
+              {userInfo.userName}
+            </h2>
+            <p className="text-sm text-neutral-300">{userInfo.email}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-neutral-300">크레딧</p>
+            <p className="font-medium text-yellow-400">
+              {userInfo.credit.balance.toLocaleString()}
+            </p>
           </div>
         </div>
-      )} */}
+      </div>
+    )} */}
 
-      <div className="mb-8 ">
-        <h1 className="text-lg mb-0.5">노래 제작소</h1>
-        <p className="text-sm text-neutral-400">
-          노래를 듣고 직접 만들어보세요!
-        </p>
+      {/* Header Section */}
+      <div className="mb-8">
+        <h1 className="text-lg mb-0.5">나만의 노래 보관함</h1>
+        <p className="text-sm text-neutral-400">직접 노래를 만들어보세요!</p>
       </div>
 
+      {/* Content Section */}
       <div className="space-y-4">
         {/* Completed Songs */}
         {completedSongs.map((song) => (
@@ -255,29 +256,33 @@ const HomePage: React.FC = () => {
           <div
             key={transaction.transactionId}
             onClick={() => handleTransactionSelect(transaction)}
-            className="cursor-pointer rounded-xl bg-neutral-900 p-4 transition-all hover:bg-neutral-800 active:scale-[0.99]"
+            className="flex items-center gap-3 cursor-pointer group bg-neutral-900 p-3 rounded-lg hover:bg-neutral-800 active:scale-[0.99] transition-all"
           >
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="font-medium text-yellow-400">
-                {transaction.songTitle}
-              </h3>
-              <span className="text-sm text-neutral-400">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <h3 className="text-[15px] leading-[1.3] font-medium text-white truncate">
+                  {transaction.songTitle}
+                </h3>
+              </div>
+              <p className="text-[13px] text-neutral-400">
+                {transaction.artistName}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-neutral-400">
                 {new Date(
                   transaction.timestamp.seconds * 1000
                 ).toLocaleDateString()}
               </span>
-            </div>
-            <p className="text-sm text-neutral-300">{transaction.artistName}</p>
-            <div className="mt-2 text-xs">
-              <span
-                className={`rounded-full px-2 py-1 ${
+              <div
+                className={`px-2 py-1 rounded-md text-xs font-medium ${
                   transaction.status === "pending"
-                    ? "bg-yellow-900 text-yellow-300"
-                    : "bg-red-900 text-red-300"
+                    ? "bg-yellow-400/10 text-yellow-400"
+                    : "bg-red-400/10 text-red-400"
                 }`}
               >
-                {transaction.status}
-              </span>
+                {transaction.status.toUpperCase()}
+              </div>
             </div>
           </div>
         ))}

@@ -147,59 +147,66 @@ const EditPage2 = () => {
 
   return (
     <div className="min-h-screen bg-black">
+      {/* Status Modal */}
       {(isLoading || isCompleted) && (
         <StatusModal isLoading={isLoading} onComplete={handleNavigateToHome} />
       )}
 
-      <div className="mb-8">
-        <h1 className="text-lg mb-0.5">앨범 커버 선택</h1>
-        <p className="text-sm text-neutral-400">
-          마음에 드는 이미지를 선택해주세요!
-        </p>
-      </div>
+      {/* Main Container */}
+      <div className="flex flex-col h-screen">
+        {/* Header Section - edit1과 동일한 스타일 적용 */}
+        <div className="p-5">
+          <div className="mb-8">
+            <h1 className="text-lg mb-0.5 text-white">앨범 커버 선택</h1>
+            <p className="text-sm text-neutral-400">
+              마음에 드는 이미지를 선택해주세요!
+            </p>
+          </div>
+        </div>
 
-      <h2 className="py-6 text-center text-xl font-semibold text-white">
-        앨범 커버를 골라주세요!
-      </h2>
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto px-5 custom-scrollbar">
+          <div className="grid grid-cols-2 gap-4 pb-24">
+            {totalArtistImageList.map((cover, index) => (
+              <div
+                key={index}
+                onClick={() => handleImageClick(index)}
+                className={`relative aspect-[16/9] w-full cursor-pointer overflow-hidden rounded-lg 
+                  ${
+                    selectedImage === index
+                      ? "outline outline-3 outline-yellow-400 -outline-offset-3"
+                      : ""
+                  }`}
+              >
+                <img
+                  src={cover}
+                  alt={`앨범 커버 ${index + 1}`}
+                  className="h-full w-full object-cover"
+                />
+                {selectedImage === index && (
+                  <div className="absolute inset-0 bg-yellow-400 bg-opacity-10" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
 
-      <div className="h-[calc(100vh-180px)] px-5">
-        <div className="grid h-full auto-rows-max grid-cols-2 gap-x-4 gap-y-8 overflow-y-auto pb-24">
-          {totalArtistImageList.map((cover, index) => (
-            <div
-              key={index}
-              onClick={() => handleImageClick(index)}
-              className={`relative aspect-[16/9] w-full cursor-pointer overflow-hidden rounded-lg 
-                ${
-                  selectedImage === index
-                    ? "outline outline-3 outline-yellow-400 -outline-offset-3"
-                    : ""
-                }`}
-            >
-              <img
-                src={cover}
-                alt={`앨범 커버 ${index + 1}`}
-                className="h-full w-full object-cover"
-              />
-              {selectedImage === index && (
-                <div className="absolute inset-0 bg-yellow-400 bg-opacity-10" />
-              )}
-            </div>
-          ))}
+        {/* Fixed Button Area - edit1과 유사한 그라데이션 스타일 적용 */}
+        <div className="fixed inset-x-0 bottom-0 z-50 bg-gradient-to-t from-black via-black to-transparent pb-5 pt-10">
+          <button
+            onClick={handleComplete}
+            disabled={selectedImage === null || isLoading || isCompleted}
+            className={`mx-5 w-[calc(100%-40px)] rounded-xl py-4 text-base font-bold
+              ${
+                selectedImage === null || isLoading || isCompleted
+                  ? "cursor-not-allowed bg-neutral-600 opacity-50"
+                  : "cursor-pointer bg-yellow-400"
+              }`}
+          >
+            완성곡 받기
+          </button>
         </div>
       </div>
-
-      <button
-        onClick={handleComplete}
-        disabled={selectedImage === null || isLoading || isCompleted}
-        className={`fixed bottom-4 left-4 right-4 z-10 rounded-lg px-4 py-4 text-base font-semibold
-          ${
-            selectedImage === null || isLoading || isCompleted
-              ? "bg-gray-400 text-gray-600"
-              : "bg-yellow-400 text-black"
-          }`}
-      >
-        완성곡 받기
-      </button>
     </div>
   );
 };
