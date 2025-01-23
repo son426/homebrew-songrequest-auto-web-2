@@ -17,7 +17,7 @@ import {
 import { FirestoreService } from "../../services/firestore.service";
 import { useModal } from "../../components/modal/useModal";
 
-const DUMMY_USER_ID = "JFTwpmzL3aeTYb0Sxh2MYrPHlPG2";
+const DUMMY_USER_ID = "";
 
 const HomePage: React.FC = () => {
   const [completedSongs, setCompletedSongs] = useState<Song[]>([]);
