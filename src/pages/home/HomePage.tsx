@@ -13,42 +13,59 @@ import {
 import {
   Collections,
   User,
-  AutoBrewingTransaction,
   Song,
-} from "../types/schema";
+  SongRequest,
+  Status,
+  AutoBrewingTransaction,
+} from "../../types/schema";
 import { useRecoilState } from "recoil";
-import { selectedTransactionState, userState } from "../atom";
+import { selectedTransactionState, userState } from "../../atom";
+import SongRequestModalContent from "./components/SongRequestModal";
+import { useModal } from "../../hooks/useModal";
 
 const DUMMY_USER_ID = "JFTwpmzL3aeTYb0Sxh2MYrPHlPG2";
 
 const HomePage: React.FC = () => {
-  const [brewingTransactions, setBrewingTransactions] = useState<
+  const [completedSongs, setCompletedSongs] = useState<Song[]>([]);
+  const [failedPendingOrErrorRequests, setFailedPendingOrErrorRequests] =
+    useState<SongRequest[]>([]);
+  const [userInfo, setUserInfo] = useRecoilState(userState);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(false);
+  const [autoBrewingTransactions, setAutoBrewingTransactions] = useState<
     AutoBrewingTransaction[]
   >([]);
-  const [completedSongs, setCompletedSongs] = useState<Song[]>([]);
-  const [userInfo, setUserInfo] = useRecoilState(userState);
   const [selectedTransaction, setSelectedTransaction] = useRecoilState(
     selectedTransactionState
   );
-  const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
 
+  const { openModal } = useModal();
+
   // User Info 초기화 및 업데이트 처리
   useEffect(() => {
-    // 1. 초기 userInfo 설정
-    if (window.USER_INFO) {
-      console.log("Initial USER_INFO:", window.USER_INFO);
-      setUserInfo(window.USER_INFO);
-    }
+    let timeoutId: NodeJS.Timeout;
 
-    // 2. window.updateUserState 함수 설정
+    const initializeUserInfo = () => {
+      if (window.USER_INFO) {
+        console.log("Initial USER_INFO:", window.USER_INFO);
+        setUserInfo(window.USER_INFO);
+      }
+      // USER_INFO가 없더라도 초기 체크는 완료된 것으로 간주
+      setIsInitialLoading(false);
+    };
+
+    // 짧은 딜레이 후 초기 USER_INFO 체크
+    timeoutId = setTimeout(initializeUserInfo, 100);
+
+    // window.updateUserState 함수 설정
     window.updateUserState = (newUserInfo: User) => {
       console.log("User state updated:", newUserInfo);
       setUserInfo(newUserInfo);
     };
 
-    // 3. 메시지 이벤트 핸들러
+    // 메시지 이벤트 핸들러
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
@@ -70,60 +87,72 @@ const HomePage: React.FC = () => {
     return () => {
       window.removeEventListener("message", handleMessage);
       delete window.updateUserState;
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, []);
 
+  // Transactions fetching
   useEffect(() => {
-    const fetchBrewingTransactions = async () => {
-      if (!userInfo?.userId) {
-        setIsLoading(false);
-        return;
-      }
-
+    const fetchData = async () => {
+      setIsDataLoading(true);
       try {
         const db = getFirestore();
-        const brewingRef = collection(db, Collections.AUTO_BREWING_TRANSACTION);
-        const q = query(
-          brewingRef,
-          where("userId", "==", userInfo.userId),
-          // where("userId", "==", DUMMY_USER_ID),
-          orderBy("timestamp", "desc")
-        );
+        const [songRequestsData, brewingTransactionsData] = await Promise.all([
+          // Song requests fetch
+          (async () => {
+            const songRequestsRef = collection(db, Collections.SONG_REQUEST);
+            const q = query(
+              songRequestsRef,
+              where("userId", "==", userInfo?.userId || DUMMY_USER_ID),
+              orderBy("requestAt", "desc")
+            );
+            return getDocs(q);
+          })(),
 
-        const querySnapshot = await getDocs(q);
-        const transactions: AutoBrewingTransaction[] = [];
+          // Auto brewing transactions fetch
+          (async () => {
+            const brewingRef = collection(
+              db,
+              Collections.AUTO_BREWING_TRANSACTION
+            );
+            const q = query(
+              brewingRef,
+              where("userId", "==", userInfo?.userId || DUMMY_USER_ID),
+              orderBy("timestamp", "desc")
+            );
+            return getDocs(q);
+          })(),
+        ]);
+
+        const requests: SongRequest[] = [];
         const completedSongIds: string[] = [];
+        const brewingTransactions: AutoBrewingTransaction[] = [];
 
-        querySnapshot.forEach((doc) => {
-          const transaction = doc.data() as AutoBrewingTransaction;
-          transactions.push(transaction);
-          if (transaction.status === "completed") {
-            completedSongIds.push(transaction.songId);
+        // Process song requests
+        songRequestsData.forEach((doc) => {
+          const request = {
+            ...doc.data(),
+            songRequestId: doc.id,
+          } as SongRequest;
+          if ([Status.COMPLETE, Status.EXISTING].includes(request.status)) {
+            completedSongIds.push(request.songId);
+          } else {
+            requests.push(request);
           }
         });
 
-        // Sort non-completed transactions
-        const nonCompletedTransactions = transactions.filter(
-          (t) => t.status !== "completed"
-        );
-        const sortedTransactions = nonCompletedTransactions.sort((a, b) => {
-          type StatusType = "completed" | "failed" | "pending";
-          const statusOrder: Record<StatusType, number> = {
-            completed: 0,
-            pending: 1,
-            failed: 2,
-          };
-
-          if (statusOrder[a.status] !== statusOrder[b.status]) {
-            return statusOrder[a.status] - statusOrder[b.status];
-          }
-
-          return b.timestamp.seconds - a.timestamp.seconds;
+        // [추가] Process brewing transactions
+        brewingTransactionsData.forEach((doc) => {
+          const transaction = {
+            ...doc.data(),
+            transactionId: doc.id,
+          } as AutoBrewingTransaction;
+          brewingTransactions.push(transaction);
         });
 
-        setBrewingTransactions(sortedTransactions);
+        setAutoBrewingTransactions(brewingTransactions);
+        setFailedPendingOrErrorRequests(requests);
 
-        // Fetch completed songs
         if (completedSongIds.length > 0) {
           const songsRef = collection(db, Collections.SONG);
           const songs: Song[] = [];
@@ -140,13 +169,13 @@ const HomePage: React.FC = () => {
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
-        setIsLoading(false);
+        setIsDataLoading(false);
       }
     };
 
-    fetchBrewingTransactions();
-  }, [userInfo]);
-
+    fetchData();
+  }, [userInfo, isInitialLoading]);
+  // [변경] handleTransactionSelect 활성화
   const handleTransactionSelect = (transaction: AutoBrewingTransaction) => {
     setSelectedTransaction(transaction);
     navigate(`/edit1/${transaction.transactionId}`);
@@ -188,7 +217,19 @@ const HomePage: React.FC = () => {
     );
   };
 
-  if (isLoading) {
+  const handleRequestPress = (request: SongRequest) => {
+    const matchingTransaction = autoBrewingTransactions.find(
+      (t) => t.songRequestId === request.songRequestId && t.status === "pending"
+    );
+
+    if (matchingTransaction) {
+      handleTransactionSelect(matchingTransaction);
+    } else {
+      openModal(<SongRequestModalContent request={request} />);
+    }
+  };
+
+  if (isInitialLoading || isDataLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent"></div>
@@ -196,7 +237,7 @@ const HomePage: React.FC = () => {
     );
   }
 
-  if (!userInfo?.userId) {
+  if (!userInfo?.userId && !DUMMY_USER_ID) {
     return (
       <div className="min-h-screen bg-black p-5 flex flex-col items-center justify-center text-white">
         <p className="text-lg mb-4">로그인 후에 제조가 가능해요!</p>
@@ -210,7 +251,10 @@ const HomePage: React.FC = () => {
     );
   }
 
-  if (brewingTransactions.length === 0 && completedSongs.length === 0) {
+  if (
+    completedSongs.length === 0 &&
+    failedPendingOrErrorRequests.length === 0
+  ) {
     return (
       <div className="min-h-screen bg-black p-5 flex flex-col items-center justify-center text-white">
         <div className="flex flex-col items-center">
@@ -226,37 +270,15 @@ const HomePage: React.FC = () => {
     );
   }
 
+  // [변경] UI에서 매칭 transaction 확인 및 처리
   return (
     <div className="min-h-screen bg-black p-5 pb-20 text-white">
-      {/* User Info Section - Commented out for now */}
-      {/* {userInfo && (
-      <div className="mb-6 rounded-lg bg-neutral-800/70 p-4 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="font-medium text-yellow-400">
-              {userInfo.userName}
-            </h2>
-            <p className="text-sm text-neutral-300">{userInfo.email}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-neutral-300">크레딧</p>
-            <p className="font-medium text-yellow-400">
-              {userInfo.credit.balance.toLocaleString()}
-            </p>
-          </div>
-        </div>
-      </div>
-    )} */}
-
-      {/* Header Section */}
       <div className="mb-8">
         <h1 className="text-lg mb-0.5">나만의 노래 보관함</h1>
         <p className="text-sm text-neutral-400">직접 노래를 만들어보세요!</p>
       </div>
 
-      {/* Content Section */}
       <div className="space-y-4">
-        {/* Completed Songs */}
         {completedSongs.map((song) => (
           <div
             key={song.songId}
@@ -312,41 +334,58 @@ const HomePage: React.FC = () => {
           </div>
         ))}
 
-        {/* Pending/Failed Transactions */}
-        {brewingTransactions.map((transaction) => (
-          <div
-            key={transaction.transactionId}
-            onClick={() => handleTransactionSelect(transaction)}
-            className="flex items-center gap-3 cursor-pointer group bg-neutral-900 p-3 rounded-lg hover:bg-neutral-800 active:scale-[0.99] transition-all"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <h3 className="text-[15px] leading-[1.3] font-medium text-white truncate">
-                  {transaction.songTitle}
-                </h3>
+        {failedPendingOrErrorRequests.map((request) => {
+          const matchingTransaction = autoBrewingTransactions.find(
+            (t) =>
+              t.songRequestId === request.songRequestId &&
+              t.status === "pending"
+          );
+
+          return (
+            <div
+              key={request.songRequestId}
+              onClick={() =>
+                matchingTransaction
+                  ? handleTransactionSelect(matchingTransaction)
+                  : handleRequestPress(request)
+              }
+              className="flex items-center gap-3 cursor-pointer group bg-neutral-900 p-3 rounded-lg hover:bg-neutral-800 active:scale-[0.99] transition-all"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <h3 className="text-[15px] leading-[1.3] font-medium text-white truncate">
+                    {request.songTitle}
+                  </h3>
+                </div>
+                <p className="text-[13px] text-neutral-400">
+                  {request.artistName}
+                </p>
               </div>
-              <p className="text-[13px] text-neutral-400">
-                {transaction.artistName}
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="text-xs text-neutral-400">
-                {new Date(
-                  transaction.timestamp.seconds * 1000
-                ).toLocaleDateString()}
-              </span>
-              <div
-                className={`px-2 py-1 rounded-md text-xs font-medium ${
-                  transaction.status === "pending"
-                    ? "bg-yellow-400/10 text-yellow-400"
-                    : "bg-red-400/10 text-red-400"
-                }`}
-              >
-                {transaction.status === "pending" ? "대기" : "실패"}
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-neutral-400">
+                  {new Date(
+                    request.requestAt.seconds * 1000
+                  ).toLocaleDateString()}
+                </span>
+                <div
+                  className={`px-2 py-1 rounded-md text-xs font-medium ${
+                    matchingTransaction
+                      ? "bg-green-400/10 text-green-400"
+                      : request.status === Status.PENDING
+                      ? "bg-yellow-400/10 text-yellow-400"
+                      : "bg-red-400/10 text-red-400"
+                  }`}
+                >
+                  {matchingTransaction
+                    ? "제작가능"
+                    : request.status === Status.PENDING
+                    ? "대기"
+                    : "실패"}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

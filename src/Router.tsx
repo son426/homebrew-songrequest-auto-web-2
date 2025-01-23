@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { RecoilRoot } from "recoil";
 import Edit1Page from "./pages/Edit1Page";
 import Edit2Page from "./pages/Edit2Page";
-import HomePage from "./pages/HomePage";
+import HomePage from "./pages/home/HomePage";
 
 function Router() {
   return (
