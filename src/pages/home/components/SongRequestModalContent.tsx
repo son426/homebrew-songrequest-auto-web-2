@@ -1,5 +1,6 @@
 import React from "react";
 import { SongRequest, Status } from "../../../types/schema";
+import { useModal } from "../../../components/modal/useModal";
 
 interface RequestModalContentProps {
   request: SongRequest;
@@ -8,6 +9,8 @@ interface RequestModalContentProps {
 const SongRequestModalContent: React.FC<RequestModalContentProps> = ({
   request,
 }) => {
+  const { closeModal } = useModal();
+
   const getStatusText = (status: Status) => {
     switch (status) {
       case Status.PENDING:
@@ -48,6 +51,12 @@ const SongRequestModalContent: React.FC<RequestModalContentProps> = ({
           </span>
         </div>
       </div>
+      <button
+        onClick={closeModal}
+        className="w-full mt-6 py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition-colors"
+      >
+        확인
+      </button>
     </div>
   );
 };

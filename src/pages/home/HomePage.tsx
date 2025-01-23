@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  getFirestore,
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  doc,
-  getDoc,
-} from "firebase/firestore";
-import {
-  Collections,
-  User,
   Song,
   SongRequest,
   Status,
@@ -20,8 +8,14 @@ import {
 } from "../../types/schema";
 import { useRecoilState } from "recoil";
 import { selectedTransactionState, userState } from "../../atom";
-import SongRequestModalContent from "./components/SongRequestModal";
-import { useModal } from "../../hooks/useModal";
+import SongRequestModalContent from "./components/SongRequestModalContent";
+
+import {
+  setupWebViewMessageListener,
+  webViewActions,
+} from "../../services/webView.service";
+import { FirestoreService } from "../../services/firestore.service";
+import { useModal } from "../../components/modal/useModal";
 
 const DUMMY_USER_ID = "JFTwpmzL3aeTYb0Sxh2MYrPHlPG2";
 
@@ -40,132 +34,43 @@ const HomePage: React.FC = () => {
   );
 
   const navigate = useNavigate();
-
   const { openModal } = useModal();
 
-  // User Info 초기화 및 업데이트 처리
+  // 웹뷰 리스너
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    if (window.USER_INFO) {
+      setUserInfo(window.USER_INFO);
+    }
+    setIsInitialLoading(false);
 
-    const initializeUserInfo = () => {
-      if (window.USER_INFO) {
-        console.log("Initial USER_INFO:", window.USER_INFO);
-        setUserInfo(window.USER_INFO);
-      }
-      // USER_INFO가 없더라도 초기 체크는 완료된 것으로 간주
-      setIsInitialLoading(false);
-    };
-
-    // 짧은 딜레이 후 초기 USER_INFO 체크
-    timeoutId = setTimeout(initializeUserInfo, 100);
-
-    // window.updateUserState 함수 설정
-    window.updateUserState = (newUserInfo: User) => {
-      console.log("User state updated:", newUserInfo);
+    // 웹뷰 메시지 리스너 설정
+    const cleanup = setupWebViewMessageListener((newUserInfo) => {
       setUserInfo(newUserInfo);
-    };
+    });
 
-    // 메시지 이벤트 핸들러
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data?.type === "USER_INFO_CHECK" || data?.type === "USER_INFO") {
-          const newUserInfo = data.data || data.payload;
-          if (newUserInfo) {
-            console.log("Received user update:", newUserInfo);
-            setUserInfo(newUserInfo);
-          }
-        }
-      } catch (error) {
-        console.error("Error processing message:", error);
-      }
-    };
-
-    window.addEventListener("message", handleMessage);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener("message", handleMessage);
-      delete window.updateUserState;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
+    window.updateUserState = setUserInfo;
+    return cleanup;
   }, []);
 
-  // Transactions fetching
+  // 데이터 fetch
   useEffect(() => {
     const fetchData = async () => {
       setIsDataLoading(true);
       try {
-        const db = getFirestore();
-        const [songRequestsData, brewingTransactionsData] = await Promise.all([
-          // Song requests fetch
-          (async () => {
-            const songRequestsRef = collection(db, Collections.SONG_REQUEST);
-            const q = query(
-              songRequestsRef,
-              where("userId", "==", userInfo?.userId || DUMMY_USER_ID),
-              orderBy("requestAt", "desc")
-            );
-            return getDocs(q);
-          })(),
-
-          // Auto brewing transactions fetch
-          (async () => {
-            const brewingRef = collection(
-              db,
-              Collections.AUTO_BREWING_TRANSACTION
-            );
-            const q = query(
-              brewingRef,
-              where("userId", "==", userInfo?.userId || DUMMY_USER_ID),
-              orderBy("timestamp", "desc")
-            );
-            return getDocs(q);
-          })(),
+        const [songRequestsData, brewingTransactions] = await Promise.all([
+          FirestoreService.getSongRequests(userInfo?.userId || DUMMY_USER_ID),
+          FirestoreService.getBrewingTransactions(
+            userInfo?.userId || DUMMY_USER_ID
+          ),
         ]);
 
-        const requests: SongRequest[] = [];
-        const completedSongIds: string[] = [];
-        const brewingTransactions: AutoBrewingTransaction[] = [];
-
-        // Process song requests
-        songRequestsData.forEach((doc) => {
-          const request = {
-            ...doc.data(),
-            songRequestId: doc.id,
-          } as SongRequest;
-          if ([Status.COMPLETE, Status.EXISTING].includes(request.status)) {
-            completedSongIds.push(request.songId);
-          } else {
-            requests.push(request);
-          }
-        });
-
-        // [추가] Process brewing transactions
-        brewingTransactionsData.forEach((doc) => {
-          const transaction = {
-            ...doc.data(),
-            transactionId: doc.id,
-          } as AutoBrewingTransaction;
-          brewingTransactions.push(transaction);
-        });
-
         setAutoBrewingTransactions(brewingTransactions);
-        setFailedPendingOrErrorRequests(requests);
+        setFailedPendingOrErrorRequests(songRequestsData.pendingRequests);
 
-        if (completedSongIds.length > 0) {
-          const songsRef = collection(db, Collections.SONG);
-          const songs: Song[] = [];
-
-          for (const songId of completedSongIds) {
-            const songDoc = await getDoc(doc(songsRef, songId));
-            if (songDoc.exists()) {
-              songs.push(songDoc.data() as Song);
-            }
-          }
-
-          setCompletedSongs(songs);
-        }
+        const completedSongs = await FirestoreService.getCompletedSongs(
+          songRequestsData.completedSongIds
+        );
+        setCompletedSongs(completedSongs);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -175,46 +80,26 @@ const HomePage: React.FC = () => {
 
     fetchData();
   }, [userInfo, isInitialLoading]);
-  // [변경] handleTransactionSelect 활성화
+
   const handleTransactionSelect = (transaction: AutoBrewingTransaction) => {
     setSelectedTransaction(transaction);
     navigate(`/edit1/${transaction.transactionId}`);
   };
 
   const handleSignInClick = () => {
-    window.ReactNativeWebView?.postMessage(
-      JSON.stringify({
-        type: "NAVIGATION",
-        screen: "Signin",
-      })
-    );
+    webViewActions.navigate("Signin");
   };
 
   const handleShare = (song: Song) => {
-    window.ReactNativeWebView?.postMessage(
-      JSON.stringify({
-        type: "SHARE_SONG",
-        song: song,
-      })
-    );
+    webViewActions.shareSong(song);
   };
 
   const handleSongPress = (song: Song) => {
-    window.ReactNativeWebView?.postMessage(
-      JSON.stringify({
-        type: "PRESS_SONG",
-        song: song,
-      })
-    );
+    webViewActions.pressSong(song);
   };
 
   const handleNavigateToMake = () => {
-    window.ReactNativeWebView?.postMessage(
-      JSON.stringify({
-        type: "NAVIGATION",
-        screen: "Make",
-      })
-    );
+    webViewActions.navigate("Make");
   };
 
   const handleRequestPress = (request: SongRequest) => {
@@ -270,7 +155,6 @@ const HomePage: React.FC = () => {
     );
   }
 
-  // [변경] UI에서 매칭 transaction 확인 및 처리
   return (
     <div className="min-h-screen bg-black p-5 pb-20 text-white">
       <div className="mb-8">

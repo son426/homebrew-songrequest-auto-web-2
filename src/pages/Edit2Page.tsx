@@ -3,12 +3,8 @@ import { storage } from "../lib/firebase";
 import { ref, listAll, getDownloadURL } from "firebase/storage";
 import { useRecoilValue, useResetRecoilState } from "recoil";
 import { selectedSongMetaState, selectedTransactionState } from "../atom";
-import { addNewSong } from "../services/songService";
 import { useNavigate } from "react-router-dom";
-import {
-  updateBrewingTransactionStatus,
-  updateSongRequestToComplete,
-} from "../services/songRequestService";
+import { FirestoreService } from "../services/firestore.service";
 
 const Edit2Page = () => {
   const navigate = useNavigate();
@@ -71,7 +67,8 @@ const Edit2Page = () => {
           : totalArtistImageList[selectedImage];
 
       // 1. 곡 추가
-      const newSongId = await addNewSong({
+
+      const newSongId = await FirestoreService.addNewSong({
         artistId: selectedTransaction.existingArtist?.artistId || "",
         artistName: selectedTransaction.artistName,
         title: selectedTransaction.songTitle,
@@ -88,14 +85,14 @@ const Edit2Page = () => {
       });
 
       // 2. songRequest 관련 업데이트
-      await updateSongRequestToComplete({
+      await FirestoreService.updateSongRequestToComplete({
         songRequestId: selectedTransaction.songRequestId,
         userId: selectedTransaction.userId,
         newSongId,
       });
 
       // 3. AutoBrewingTransaction 상태 업데이트
-      await updateBrewingTransactionStatus(
+      await FirestoreService.updateBrewingTransactionStatus(
         selectedTransaction.transactionId,
         newSongId,
         "completed"
@@ -118,7 +115,7 @@ const Edit2Page = () => {
 
       if (selectedTransaction) {
         try {
-          await updateBrewingTransactionStatus(
+          await FirestoreService.updateBrewingTransactionStatus(
             selectedTransaction.transactionId,
             "",
             "failed",

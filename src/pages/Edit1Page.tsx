@@ -251,14 +251,6 @@ const Edit1Page: React.FC = () => {
       const selectedAudioPair =
         versionGroups[selectedVersion].pitchGroups[currentPitchIndex].audioPair;
 
-      const selectedData = {
-        songRequestId: transaction.songRequestId,
-        songTitle: transaction.songTitle,
-        requestAt: transaction.timestamp,
-        requestUserId: transaction.userId,
-        resultAudioUrl: selectedAudioPair.resultUrl,
-      };
-      // console.log("selectedData : " + selectedData);
       setSongMeta((prev) => ({
         audioUrl: selectedAudioPair.resultUrl,
         artwork: prev?.artwork || null, // artwork를 optional이 아닌 string | null로 명시
@@ -297,7 +289,12 @@ const Edit1Page: React.FC = () => {
             >
               <button
                 onClick={(e) => handlePitchChange(e, index, "down")}
-                className="flex h-6 w-6 items-center justify-center text-yellow-400 focus:outline-none active:opacity-70"
+                disabled={currentPitchIndex === 0}
+                className={`flex h-6 w-6 items-center justify-center focus:outline-none ${
+                  currentPitchIndex === 0
+                    ? "cursor-not-allowed bg-neutral-800 opacity-30"
+                    : "text-yellow-400 active:opacity-70"
+                }`}
               >
                 <img src={MinusIcon} alt="decrease pitch" className="w-full" />
               </button>
@@ -306,7 +303,16 @@ const Edit1Page: React.FC = () => {
               </span>
               <button
                 onClick={(e) => handlePitchChange(e, index, "up")}
-                className="flex h-6 w-6 items-center justify-center text-yellow-400 focus:outline-none active:opacity-70"
+                disabled={
+                  currentPitchIndex ===
+                  versionGroups[index].pitchGroups.length - 1
+                }
+                className={`flex h-6 w-6 items-center justify-center focus:outline-none ${
+                  currentPitchIndex ===
+                  versionGroups[index].pitchGroups.length - 1
+                    ? "cursor-not-allowed bg-neutral-800 opacity-30"
+                    : "text-yellow-400 active:opacity-70"
+                }`}
               >
                 <img src={PlusIcon} alt="increase pitch" className="w-full" />
               </button>
