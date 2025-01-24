@@ -18,14 +18,16 @@ import { FirestoreService } from "../../services/firestore.service";
 import { useModal } from "../../components/modal/useModal";
 
 const DUMMY_USER_ID = "";
+const WEBVIEW_USER_TIMEOUT_MS = 3000;
 
 const HomePage: React.FC = () => {
   const [completedSongs, setCompletedSongs] = useState<Song[]>([]);
   const [failedPendingOrErrorRequests, setFailedPendingOrErrorRequests] =
     useState<SongRequest[]>([]);
   const [userInfo, setUserInfo] = useRecoilState(userState);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isDataLoading, setIsDataLoading] = useState(false);
+
+  console.log("테스트!!!");
+
   const [autoBrewingTransactions, setAutoBrewingTransactions] = useState<
     AutoBrewingTransaction[]
   >([]);
@@ -33,32 +35,48 @@ const HomePage: React.FC = () => {
     selectedTransactionState
   );
 
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(false);
+
   const navigate = useNavigate();
   const { openModal } = useModal();
 
   // 웹뷰 리스너
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
     if (window.USER_INFO) {
       setUserInfo(window.USER_INFO);
+      setIsInitialLoading(false);
+    } else {
+      timeoutId = setTimeout(() => {
+        setIsInitialLoading(false);
+      }, WEBVIEW_USER_TIMEOUT_MS);
     }
-    setIsInitialLoading(false);
 
     // 웹뷰 메시지 리스너 설정
     const cleanup = setupWebViewMessageListener((newUserInfo) => {
       setUserInfo(newUserInfo);
+      setIsInitialLoading(false);
+      if (timeoutId) clearTimeout(timeoutId);
     });
 
     window.updateUserState = setUserInfo;
-    return cleanup;
+    return () => {
+      cleanup();
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, []);
 
   // 데이터 fetch
   useEffect(() => {
     const fetchData = async () => {
       setIsDataLoading(true);
+      const userId = userInfo?.userId || DUMMY_USER_ID;
+      if (!userId) return;
       try {
         const [songRequestsData, brewingTransactions] = await Promise.all([
-          FirestoreService.getSongRequests(userInfo?.userId || DUMMY_USER_ID),
+          FirestoreService.getSongRequests(userId),
           FirestoreService.getBrewingTransactions(
             userInfo?.userId || DUMMY_USER_ID
           ),
@@ -122,7 +140,7 @@ const HomePage: React.FC = () => {
     );
   }
 
-  if (!userInfo?.userId && !DUMMY_USER_ID) {
+  if (!userInfo?.userId) {
     return (
       <div className="min-h-screen bg-black p-5 flex flex-col items-center justify-center text-white">
         <p className="text-lg mb-4">로그인 후에 제조가 가능해요!</p>
