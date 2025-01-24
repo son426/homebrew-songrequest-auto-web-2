@@ -135,6 +135,14 @@ export const setupWebViewMessageListener = (
 ): (() => void) => {
   const handleMessage = (event: MessageEvent) => {
     try {
+      // 디버깅을 위해 들어오는 모든 메시지 로깅
+      console.log('수신된 웹뷰 메시지:', event.data);
+      
+      if (typeof event.data !== 'string') {
+        console.warn('메시지가 문자열이 아님:', typeof event.data);
+        return;
+      }
+
       const data = JSON.parse(event.data) as WebViewMessage;
       if (data.type === "USER_INFO" || data.type === "USER_INFO_CHECK") {
         const userInfo = data.data || data.payload;
@@ -144,6 +152,7 @@ export const setupWebViewMessageListener = (
       }
     } catch (error) {
       console.error("웹뷰 메시지 처리 중 에러 발생:", error);
+      console.debug('파싱 실패한 메시지 내용:', event.data);
     }
   };
 

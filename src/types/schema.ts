@@ -32,6 +32,7 @@ export type Song = {
   madeAt: any;
   originalSongId: string; // 새롭게 추가
   isOriginalSong: boolean; // 새롭게 추가
+  songMeta: SongMeta;
 };
 
 export type OriginalSong = {
@@ -432,3 +433,8 @@ export type PendingBrewingTransaction = {
   requestAt: any;
   [key: string]: any;
 };
+
+export interface SongMeta {
+  audioUrl: string;
+  preloadedThumbnails?: string[];
+}

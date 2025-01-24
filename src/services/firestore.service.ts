@@ -276,6 +276,9 @@ export class FirestoreService {
         originalSongId: "",
         isOriginalSong: false,
         searchKeywordList,
+        songMeta: {
+          audioUrl: "",
+        },
       };
 
       const songDocRef = doc(this.db, Collections.SONG, newSongId);

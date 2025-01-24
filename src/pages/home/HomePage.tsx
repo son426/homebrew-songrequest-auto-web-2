@@ -17,7 +17,7 @@ import {
 import { FirestoreService } from "../../services/firestore.service";
 import { useModal } from "../../components/modal/useModal";
 
-const DUMMY_USER_ID = "";
+const DUMMY_USER_ID = "T6LQk4Rsp5ZYQb0g4OnBxhfKdco1";
 const WEBVIEW_USER_TIMEOUT_MS = 3000;
 
 const HomePage: React.FC = () => {
@@ -45,13 +45,42 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
 
+    // window.USER_INFO 디버깅을 위한 로그 추가
+    console.log('현재 window.USER_INFO:', window.USER_INFO);
+    console.log('현재 userInfo 상태:', userInfo);
+
     if (window.USER_INFO) {
       setUserInfo(window.USER_INFO);
       setIsInitialLoading(false);
     } else {
-      timeoutId = setTimeout(() => {
+      // DUMMY_USER_ID를 사용하여 개발 환경에서 테스트
+      if (process.env.NODE_ENV === 'development') {
+        setUserInfo({
+          userId: DUMMY_USER_ID,
+          userName: 'Test User',
+          email: 'test@example.com',
+          searchKeywordList: [],
+          likeSongList: [],
+          followArtistList: [],
+          songRequestList: [],
+          playlistList: [],
+          fcmToken: '',
+          tag: {
+            genreList: [],
+            dislikeSongIdList: []
+          },
+          credit: {
+            balance: 0,
+            referralCode: ''
+          },
+          notificationList: []
+        });
         setIsInitialLoading(false);
-      }, WEBVIEW_USER_TIMEOUT_MS);
+      } else {
+        timeoutId = setTimeout(() => {
+          setIsInitialLoading(false);
+        }, WEBVIEW_USER_TIMEOUT_MS);
+      }
     }
 
     // 웹뷰 메시지 리스너 설정
@@ -279,7 +308,7 @@ const HomePage: React.FC = () => {
                   }`}
                 >
                   {matchingTransaction
-                    ? "제작가능"
+                    ? "완료"
                     : request.status === Status.PENDING
                     ? "대기"
                     : "실패"}

@@ -6,6 +6,13 @@ import { selectedSongMetaState, selectedTransactionState } from "../atom";
 import { useNavigate } from "react-router-dom";
 import { FirestoreService } from "../services/firestore.service";
 
+// songMeta 인터페이스 추가
+interface SongMeta {
+  preloadedThumbnails?: string[];
+  audioUrl?: string;
+  artwork: string | null;
+}
+
 const Edit2Page = () => {
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
@@ -16,13 +23,20 @@ const Edit2Page = () => {
   const [isCompleted, setIsCompleted] = useState(false);
 
   const selectedTransaction = useRecoilValue(selectedTransactionState);
-  const songMeta = useRecoilValue(selectedSongMetaState);
+  const songMeta = useRecoilValue<SongMeta | null>(selectedSongMetaState as any);
 
   const resetTransaction = useResetRecoilState(selectedTransactionState);
   const resetSongMeta = useResetRecoilState(selectedSongMetaState);
 
   useEffect(() => {
     const fetchAlbumCovers = async () => {
+      // 미리 로딩된 썸네일이 있는지 확인
+      if (songMeta?.preloadedThumbnails) {
+        setTotalArtistImageList(songMeta.preloadedThumbnails);
+        return;
+      }
+
+      // 기존 로직은 미리 로딩된 썸네일이 없을 때만 실행
       try {
         const thumbnailsRef = ref(
           storage,
@@ -33,14 +47,14 @@ const Edit2Page = () => {
           getDownloadURL(imageRef)
         );
         const urls = await Promise.all(urlPromises);
-        setTotalArtistImageList([...urls, "default"]);
+        setTotalArtistImageList(urls);
       } catch (error) {
         console.error("썸네일 이미지 가져오기 실패:", error);
       }
     };
 
     fetchAlbumCovers();
-  }, [selectedTransaction?.existingArtist?.artistName]);
+  }, [selectedTransaction?.existingArtist?.artistName, songMeta?.preloadedThumbnails]);
   // 페이지 마운트 시 필수 정보 체크
 
   const handleImageClick = (index: number) => {
@@ -61,10 +75,7 @@ const Edit2Page = () => {
 
     setIsLoading(true);
     try {
-      const selectedThumbnailUrl =
-        totalArtistImageList[selectedImage] === "default"
-          ? ""
-          : totalArtistImageList[selectedImage];
+      const selectedThumbnailUrl = totalArtistImageList[selectedImage];
 
       // 1. 곡 추가
 
