@@ -39,6 +39,7 @@ const Edit1Page: React.FC = () => {
   const [pitchIndices, setPitchIndices] = useState<{ [version: string]: number }>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [hasPitchAdjusted, setHasPitchAdjusted] = useState<boolean>(false);
+  const isLoadingRef = useRef<boolean>(false);
 
   const setSongMeta = useSetRecoilState(selectedSongMetaState);
   const navigate = useNavigate();
@@ -216,13 +217,13 @@ const Edit1Page: React.FC = () => {
     }
   };
 
-  const handlePitchChange = (
+  const handlePitchChange = async (
     e: React.MouseEvent,
     index: number,
     direction: "up" | "down"
   ) => {
     e.stopPropagation();
-    if (!versionGroups[index]) return;
+    if (!versionGroups[index] || isLoadingRef.current) return;
 
     setHasPitchAdjusted(true);
 
@@ -238,20 +239,33 @@ const Edit1Page: React.FC = () => {
     }
 
     if (newPitchIndex !== currentIndex) {
+      isLoadingRef.current = true;
       setPitchIndices(prev => ({
         ...prev,
         [version]: newPitchIndex
       }));
       
       if (audioRef.current) {
-        const newAudioPair = pitchGroups[newPitchIndex].audioPair;
-        const currentTime = audioRef.current.currentTime;
-        audioRef.current.src = newAudioPair.resultUrl;
-        audioRef.current.load();
-        audioRef.current.currentTime = currentTime;
+        try {
+          const newAudioPair = pitchGroups[newPitchIndex].audioPair;
+          const currentTime = audioRef.current.currentTime;
+          const wasPlaying = playerStates[index]?.isPlaying;
+          
+          if (wasPlaying) {
+            await audioRef.current.pause();
+          }
+          
+          audioRef.current.src = newAudioPair.resultUrl;
+          await audioRef.current.load();
+          audioRef.current.currentTime = currentTime;
 
-        if (playerStates[index]?.isPlaying) {
-          audioRef.current.play();
+          if (wasPlaying) {
+            await audioRef.current.play();
+          }
+        } catch (error) {
+          console.error("오디오 로딩 중 오류 발생:", error);
+        } finally {
+          isLoadingRef.current = false;
         }
       }
     }
@@ -326,7 +340,8 @@ const Edit1Page: React.FC = () => {
       <div className="mt-16 mb-12 ml-4">
         <h1 className="text-2xl font-semibold">마음에 드는 버전을 골라주세요!</h1>
         <p className="mt-2 text-sm text-neutral-400">
-          이상 있는 음원은 설정 - 문의하기로 문의 주시면 수리해 드립니다.
+          전반적으로 가장 괜찮은 버전을 골라주세요. <br/>
+          부분 수정은 이후에 할 수 있어요.
         </p>
       </div>
 

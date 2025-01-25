@@ -39,7 +39,7 @@ const HomePage: React.FC = () => {
   const [isDataLoading, setIsDataLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { openModal } = useModal();
+  const { openModal, closeModal } = useModal();
 
   // 웹뷰 리스너
   useEffect(() => {
@@ -138,7 +138,28 @@ const HomePage: React.FC = () => {
   };
 
   const handleShare = (song: Song) => {
-    webViewActions.shareSong(song);
+    openModal(
+      <div className="p-6 text-center">
+        <h2 className="text-lg font-semibold mb-2 text-white">곡 버전 선택을 다시 하고 싶으신가요?</h2>
+        <p className="text-sm text-neutral-300 mb-4">카톡 채널로 문의 주시면 24시간 내에 수정 해서 전달 드립니다.</p>
+        <div className="flex justify-center gap-3">
+          <button
+            onClick={() => {
+              window.location.href = 'http://pf.kakao.com/_ztcLG/chat?mode=chat&input=%EC%8B%A0%EC%B2%AD%EA%B3%A1%20%EB%B2%84%EC%A0%84%EC%9D%84%20%EC%88%98%EC%A0%95%ED%95%98%EA%B3%A0%20%EC%8B%B6%EC%96%B4%EC%9A%94';
+            }}
+            className="px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
+          >
+            네
+          </button>
+          <button
+            onClick={closeModal}
+            className="px-4 py-2 bg-neutral-600 text-white rounded-lg hover:bg-neutral-700 transition-colors"
+          >
+            아니오
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const handleSongPress = (song: Song) => {
@@ -204,9 +225,10 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black p-5 pb-20 text-white">
-      <div className="mb-8">
-        <h1 className="text-lg mb-0.5">나만의 노래 보관함</h1>
-        <p className="text-sm text-neutral-400">직접 노래를 만들어보세요!</p>
+      <div className="mt-8 mb-12 ml-4">
+        <h1 className="text-2xl font-semibold">
+          {userInfo?.userName || ''}의 음악 공간
+        </h1>
       </div>
 
       <div className="space-y-4">
@@ -249,7 +271,7 @@ const HomePage: React.FC = () => {
               className="shrink-0 p-2 rounded-full hover:bg-neutral-800"
             >
               <svg
-                className="w-5 h-5 text-neutral-400"
+                className="w-6 h-6 text-neutral-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -258,7 +280,13 @@ const HomePage: React.FC = () => {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
             </button>
