@@ -13,7 +13,8 @@ export type WebViewMessageType =
   | "SHARE_SONG"
   | "PRESS_SONG"
   | "USER_INFO_CHECK"
-  | "USER_INFO";
+  | "USER_INFO"
+  | "OPEN_URL";
 
 /**
  * 웹뷰 메시지 인터페이스 정의
@@ -49,11 +50,17 @@ interface UserInfoMessage extends BaseWebViewMessage {
   payload?: User;
 }
 
+interface OpenUrlMessage extends BaseWebViewMessage {
+  type: "OPEN_URL";
+  payload: string;
+}
+
 export type WebViewMessage =
   | NavigationMessage
   | ShareSongMessage
   | PressSongMessage
-  | UserInfoMessage;
+  | UserInfoMessage
+  | OpenUrlMessage;
 
 type NavigationScreens =
   | "Home"
@@ -98,11 +105,13 @@ const sendWebViewMessage = (message: WebViewMessage): void => {
  * navigate: 특정 화면으로 이동
  * shareSong: 노래 공유하기
  * pressSong: 노래 선택하기
+ * openUrl: 외부 URL 열기
  *
  * 사용 예시:
  * webViewActions.navigate('Signin')
  * webViewActions.shareSong(song)
  * webViewActions.pressSong(song)
+ * webViewActions.openUrl('http://example.com')
  */
 export const webViewActions = {
   navigate: (screen: NavigationScreens): void => {
@@ -114,6 +123,17 @@ export const webViewActions = {
   pressSong: (song: Song): void => {
     sendWebViewMessage({ type: "PRESS_SONG", song });
   },
+  openUrl: (url: string) => {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'OPEN_URL',
+        payload: url
+      }));
+    } else {
+      // 개발 환경이나 웹 환경에서는 window.open 사용
+      window.open(url, '_blank');
+    }
+  }
 };
 
 /**
