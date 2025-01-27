@@ -16,6 +16,8 @@ import {
 } from "../../services/webView.service";
 import { FirestoreService } from "../../services/firestore.service";
 import { useModal } from "../../components/modal/useModal";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../lib/firebase";
 
 const DUMMY_USER_ID = "T6LQk4Rsp5ZYQb0g4OnBxhfKdco1";
 const WEBVIEW_USER_TIMEOUT_MS = 3000;
@@ -41,39 +43,50 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { openModal, closeModal } = useModal();
 
+  useEffect(() => {
+    // 관리자 계정으로 자동 로그인
+    signInWithEmailAndPassword(auth, "hbrew999@gmail.com", "dhqordjr!?")
+      .then((userCredential) => {
+        console.log("Admin login success:", userCredential.user);
+      })
+      .catch((error) => {
+        console.error("Admin login failed:", error);
+      });
+  }, []);
+
   // 웹뷰 리스너
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
 
     // window.USER_INFO 디버깅을 위한 로그 추가
-    console.log('현재 window.USER_INFO:', window.USER_INFO);
-    console.log('현재 userInfo 상태:', userInfo);
+    console.log("현재 window.USER_INFO:", window.USER_INFO);
+    console.log("현재 userInfo 상태:", userInfo);
 
     if (window.USER_INFO) {
       setUserInfo(window.USER_INFO);
       setIsInitialLoading(false);
     } else {
       // DUMMY_USER_ID를 사용하여 개발 환경에서 테스트
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         setUserInfo({
           userId: DUMMY_USER_ID,
-          userName: 'Test User',
-          email: 'test@example.com',
+          userName: "Test User",
+          email: "test@example.com",
           searchKeywordList: [],
           likeSongList: [],
           followArtistList: [],
           songRequestList: [],
           playlistList: [],
-          fcmToken: '',
+          fcmToken: "",
           tag: {
             genreList: [],
-            dislikeSongIdList: []
+            dislikeSongIdList: [],
           },
           credit: {
             balance: 0,
-            referralCode: ''
+            referralCode: "",
           },
-          notificationList: []
+          notificationList: [],
         });
         setIsInitialLoading(false);
       } else {
@@ -140,12 +153,18 @@ const HomePage: React.FC = () => {
   const handleShare = (song: Song) => {
     openModal(
       <div className="p-6 text-center">
-        <h2 className="text-lg font-semibold mb-2 text-white">곡 버전 선택을 다시 하고 싶으신가요?</h2>
-        <p className="text-sm text-neutral-300 mb-4">카톡 채널로 문의 주시면 24시간 내에 수정 해서 전달 드립니다.</p>
+        <h2 className="text-lg font-semibold mb-2 text-white">
+          곡 버전 선택을 다시 하고 싶으신가요?
+        </h2>
+        <p className="text-sm text-neutral-300 mb-4">
+          카톡 채널로 문의 주시면 24시간 내에 수정 해서 전달 드립니다.
+        </p>
         <div className="flex justify-center gap-3">
           <button
             onClick={() => {
-              webViewActions.openUrl('http://pf.kakao.com/_ztcLG/chat?mode=chat&input=%EC%8B%A0%EC%B2%AD%EA%B3%A1%20%EB%B2%84%EC%A0%84%EC%9D%84%20%EC%88%98%EC%A0%95%ED%95%98%EA%B3%A0%20%EC%8B%B6%EC%96%B4%EC%9A%94');
+              webViewActions.openUrl(
+                "http://pf.kakao.com/_ztcLG/chat?mode=chat&input=%EC%8B%A0%EC%B2%AD%EA%B3%A1%20%EB%B2%84%EC%A0%84%EC%9D%84%20%EC%88%98%EC%A0%95%ED%95%98%EA%B3%A0%20%EC%8B%B6%EC%96%B4%EC%9A%94"
+              );
             }}
             className="px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
           >
@@ -227,7 +246,7 @@ const HomePage: React.FC = () => {
     <div className="min-h-screen bg-black p-5 pb-20 text-white">
       <div className="mt-8 mb-12 ml-4">
         <h1 className="text-2xl font-semibold">
-          {userInfo?.userName || ''}의 음악 공간
+          {userInfo?.userName || ""}의 음악 공간
         </h1>
       </div>
 
