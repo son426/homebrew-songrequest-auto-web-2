@@ -134,19 +134,19 @@ export class FirestoreService {
           }
         );
 
-        const updatedCredit = userData.credit
-          ? {
-              ...userData.credit,
-              balance:
-                userData.credit.balance > 0
-                  ? userData.credit.balance - 1
-                  : userData.credit.balance,
-            }
-          : undefined;
+        // const updatedCredit = userData.credit
+        //   ? {
+        //       ...userData.credit,
+        //       balance:
+        //         userData.credit.balance > 0
+        //           ? userData.credit.balance - 1
+        //           : userData.credit.balance,
+        //     }
+        //   : undefined;
 
         transaction.update(userRef, {
           songRequestList: updatedSongRequestList,
-          ...(updatedCredit && { credit: updatedCredit }),
+          // ...(updatedCredit && { credit: updatedCredit }),
         });
       });
 

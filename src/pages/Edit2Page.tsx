@@ -87,7 +87,7 @@ const Edit2Page = () => {
         youtubeId: "",
         tagList: selectedTransaction.existingArtist?.tagList || [],
         isAI: true,
-        makerUserId: selectedTransaction.userId,
+        makerUserId: selectedTransaction.userName,
         tag: {
           genreList: selectedTransaction.existingArtist?.tag.genreList || [],
           tagList: selectedTransaction.existingArtist?.tagList || [],
