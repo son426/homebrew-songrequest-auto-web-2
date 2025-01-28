@@ -123,17 +123,9 @@ export const webViewActions = {
   pressSong: (song: Song): void => {
     sendWebViewMessage({ type: "PRESS_SONG", song });
   },
-  openUrl: (url: string) => {
-    if (window.ReactNativeWebView) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({
-        type: 'OPEN_URL',
-        payload: url
-      }));
-    } else {
-      // 개발 환경이나 웹 환경에서는 window.open 사용
-      window.open(url, '_blank');
-    }
-  }
+  openUrl: (url: string): void => {
+    sendWebViewMessage({ type: "OPEN_URL", payload: url });
+  },
 };
 
 /**
@@ -156,10 +148,10 @@ export const setupWebViewMessageListener = (
   const handleMessage = (event: MessageEvent) => {
     try {
       // 디버깅을 위해 들어오는 모든 메시지 로깅
-      console.log('수신된 웹뷰 메시지:', event.data);
-      
-      if (typeof event.data !== 'string') {
-        console.warn('메시지가 문자열이 아님:', typeof event.data);
+      console.log("수신된 웹뷰 메시지:", event.data);
+
+      if (typeof event.data !== "string") {
+        console.warn("메시지가 문자열이 아님:", typeof event.data);
         return;
       }
 
@@ -172,7 +164,7 @@ export const setupWebViewMessageListener = (
       }
     } catch (error) {
       console.error("웹뷰 메시지 처리 중 에러 발생:", error);
-      console.debug('파싱 실패한 메시지 내용:', event.data);
+      console.debug("파싱 실패한 메시지 내용:", event.data);
     }
   };
 

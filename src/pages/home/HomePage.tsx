@@ -165,6 +165,7 @@ const HomePage: React.FC = () => {
               webViewActions.openUrl(
                 "http://pf.kakao.com/_ztcLG/chat?mode=chat&input=%EC%8B%A0%EC%B2%AD%EA%B3%A1%20%EB%B2%84%EC%A0%84%EC%9D%84%20%EC%88%98%EC%A0%95%ED%95%98%EA%B3%A0%20%EC%8B%B6%EC%96%B4%EC%9A%94"
               );
+              closeModal();
             }}
             className="px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors"
           >

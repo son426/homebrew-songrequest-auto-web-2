@@ -23,7 +23,9 @@ const Edit2Page = () => {
   const [isCompleted, setIsCompleted] = useState(false);
 
   const selectedTransaction = useRecoilValue(selectedTransactionState);
-  const songMeta = useRecoilValue<SongMeta | null>(selectedSongMetaState as any);
+  const songMeta = useRecoilValue<SongMeta | null>(
+    selectedSongMetaState as any
+  );
 
   const resetTransaction = useResetRecoilState(selectedTransactionState);
   const resetSongMeta = useResetRecoilState(selectedSongMetaState);
@@ -54,7 +56,10 @@ const Edit2Page = () => {
     };
 
     fetchAlbumCovers();
-  }, [selectedTransaction?.existingArtist?.artistName, songMeta?.preloadedThumbnails]);
+  }, [
+    selectedTransaction?.existingArtist?.artistName,
+    songMeta?.preloadedThumbnails,
+  ]);
   // 페이지 마운트 시 필수 정보 체크
 
   const handleImageClick = (index: number) => {
@@ -146,7 +151,7 @@ const Edit2Page = () => {
   const handleNavigateToHome = () => {
     resetTransaction();
     resetSongMeta();
-    navigate("/", { replace: true });
+    navigate(-2);
   };
 
   return (
