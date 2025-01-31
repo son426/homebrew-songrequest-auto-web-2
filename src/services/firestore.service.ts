@@ -50,7 +50,9 @@ export class FirestoreService {
       } as SongRequest;
 
       if ([Status.COMPLETE, Status.EXISTING].includes(request.status)) {
-        completedSongIds.push(request.songId);
+        if (request.songId && request.songId.trim() !== "") {
+          completedSongIds.push(request.songId);
+        }
       } else {
         pendingRequests.push(request);
       }

@@ -20,6 +20,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 
 // const DUMMY_USER_ID = "T6LQk4Rsp5ZYQb0g4OnBxhfKdco1";
+// 개발할때는 더미유저 넣고 개발. 배포할때는 DUMMY_USER_ID 비우고 사용.
 const DUMMY_USER_ID = "";
 const WEBVIEW_USER_TIMEOUT_MS = 3000;
 
@@ -125,12 +126,19 @@ const HomePage: React.FC = () => {
           ),
         ]);
 
+        console.log("songRequestData : ", songRequestsData);
+        console.log("brewingTransactions : ", brewingTransactions);
+
         setAutoBrewingTransactions(brewingTransactions);
         setFailedPendingOrErrorRequests(songRequestsData.pendingRequests);
 
+        console.log("1");
         const completedSongs = await FirestoreService.getCompletedSongs(
           songRequestsData.completedSongIds
         );
+        console.log("2");
+
+        console.log("completedSongs : ", completedSongs);
         setCompletedSongs(completedSongs);
       } catch (error) {
         console.error("Error fetching data:", error);
