@@ -19,7 +19,8 @@ import { useModal } from "../../components/modal/useModal";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 
-const DUMMY_USER_ID = "T6LQk4Rsp5ZYQb0g4OnBxhfKdco1";
+// const DUMMY_USER_ID = "T6LQk4Rsp5ZYQb0g4OnBxhfKdco1";
+const DUMMY_USER_ID = "";
 const WEBVIEW_USER_TIMEOUT_MS = 3000;
 
 const HomePage: React.FC = () => {
