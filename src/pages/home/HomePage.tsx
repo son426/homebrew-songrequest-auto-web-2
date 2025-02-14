@@ -49,7 +49,7 @@ const HomePage: React.FC = () => {
     // 관리자 계정으로 자동 로그인
     signInWithEmailAndPassword(auth, "hbrew999@gmail.com", "dhqordjr!?")
       .then((userCredential) => {
-        console.log("Admin login success:", userCredential.user);
+        // console.log("Admin login success:", userCredential.user);
       })
       .catch((error) => {
         console.error("Admin login failed:", error);
@@ -59,10 +59,6 @@ const HomePage: React.FC = () => {
   // 웹뷰 리스너
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-
-    // window.USER_INFO 디버깅을 위한 로그 추가
-    console.log("현재 window.USER_INFO:", window.USER_INFO);
-    console.log("현재 userInfo 상태:", userInfo);
 
     if (window.USER_INFO) {
       setUserInfo(window.USER_INFO);
