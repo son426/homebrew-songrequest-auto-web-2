@@ -54,31 +54,5 @@
         ></div>
       </div>
     </div>
-    <!-- preload 스크립트를 동적으로 추가하는 인라인 스크립트 -->
-    <script>
-      // 메인 엔트리 파일의 preload
-      const addPreloadLinks = () => {
-        const entryPoints = window.__ASSET_MANIFEST__ || {};
-        Object.values(entryPoints).forEach((file) => {
-          if (file.endsWith(".js")) {
-            const preloadLink = document.createElement("link");
-            preloadLink.rel = "preload";
-            preloadLink.as = "script";
-            preloadLink.href = file;
-            document.head.appendChild(preloadLink);
-          }
-          if (file.endsWith(".css")) {
-            const preloadLink = document.createElement("link");
-            preloadLink.rel = "preload";
-            preloadLink.as = "style";
-            preloadLink.href = file;
-            document.head.appendChild(preloadLink);
-          }
-        });
-      };
-
-      // DOM이 로드되면 preload 링크 추가
-      document.addEventListener("DOMContentLoaded", addPreloadLinks);
-    </script>
   </body>
 </html>

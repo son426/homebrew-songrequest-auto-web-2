@@ -2,9 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Prefetch 전략 적용
-const HomePage = lazy(
-  () => import(/* webpackPrefetch: true */ "./pages/home/HomePage")
-);
+const HomePage = lazy(() => import("./pages/home/HomePage"));
 const Edit1Page = lazy(
   () => import(/* webpackPrefetch: true */ "./pages/Edit1Page")
 );
