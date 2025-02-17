@@ -240,7 +240,7 @@ export class FirestoreService {
     makerUserId: string;
     tag: { genreList: string[]; [key: string]: any };
     url?: string;
-  }): Promise<string> {
+  }): Promise<Song> {
     const songCollectionRef = collection(this.db, Collections.SONG);
     const artistDocRef = doc(this.db, Collections.ARTIST, artistId);
 
@@ -302,7 +302,7 @@ export class FirestoreService {
           songIdList: updatedSongIdList,
         });
 
-        return newSongId;
+        return newSong;
       } else {
         throw new Error("Artist document does not exist");
       }

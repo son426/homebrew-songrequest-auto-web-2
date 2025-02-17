@@ -6,8 +6,14 @@ import {
   Status,
   AutoBrewingTransaction,
 } from "../../types/schema";
-import { useRecoilState } from "recoil";
-import { selectedTransactionState, userState } from "../../atom";
+import { useRecoilState, useResetRecoilState } from "recoil";
+import {
+  autoBrewingTransactionsState,
+  completedSongsState,
+  pendingRequestsState,
+  selectedTransactionState,
+  userState,
+} from "../../atom";
 import SongRequestModalContent from "./components/SongRequestModalContent";
 
 import {
@@ -30,16 +36,17 @@ const DUMMY_USER_ID = "";
 const WEBVIEW_USER_TIMEOUT_MS = 3000;
 
 const HomePage: React.FC = () => {
-  const [completedSongs, setCompletedSongs] = useState<Song[]>([]);
+  const [completedSongs, setCompletedSongs] =
+    useRecoilState(completedSongsState);
   const [failedPendingOrErrorRequests, setFailedPendingOrErrorRequests] =
-    useState<SongRequest[]>([]);
+    useRecoilState(pendingRequestsState);
+  const [autoBrewingTransactions, setAutoBrewingTransactions] = useRecoilState(
+    autoBrewingTransactionsState
+  );
   const [userInfo, setUserInfo] = useRecoilState(userState);
 
   console.log("테스트!!!");
 
-  const [autoBrewingTransactions, setAutoBrewingTransactions] = useState<
-    AutoBrewingTransaction[]
-  >([]);
   const [selectedTransaction, setSelectedTransaction] = useRecoilState(
     selectedTransactionState
   );

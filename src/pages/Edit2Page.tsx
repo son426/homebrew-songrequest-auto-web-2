@@ -1,10 +1,17 @@
 import { useState, useEffect } from "react";
 import { storage } from "../lib/firebase";
 import { ref, listAll, getDownloadURL } from "firebase/storage";
-import { useRecoilValue, useResetRecoilState } from "recoil";
-import { selectedSongMetaState, selectedTransactionState } from "../atom";
+import { useRecoilState, useRecoilValue, useResetRecoilState } from "recoil";
+import {
+  autoBrewingTransactionsState,
+  completedSongsState,
+  pendingRequestsState,
+  selectedSongMetaState,
+  selectedTransactionState,
+} from "../atom";
 import { useNavigate } from "react-router-dom";
 import { FirestoreService } from "../services/firestore.service";
+import { webViewActions } from "../services/webView.service";
 
 // songMeta 인터페이스 추가
 interface SongMeta {
@@ -25,6 +32,14 @@ const Edit2Page = () => {
   const selectedTransaction = useRecoilValue(selectedTransactionState);
   const songMeta = useRecoilValue<SongMeta | null>(
     selectedSongMetaState as any
+  );
+
+  const [completedSongs, setCompletedSongs] =
+    useRecoilState(completedSongsState);
+  const [pendingRequests, setPendingRequests] =
+    useRecoilState(pendingRequestsState);
+  const [autoBrewingTransactions, setAutoBrewingTransactions] = useRecoilState(
+    autoBrewingTransactionsState
   );
 
   const resetTransaction = useResetRecoilState(selectedTransactionState);
@@ -83,8 +98,7 @@ const Edit2Page = () => {
       const selectedThumbnailUrl = totalArtistImageList[selectedImage];
 
       // 1. 곡 추가
-
-      const newSongId = await FirestoreService.addNewSong({
+      const newSong = await FirestoreService.addNewSong({
         artistId: selectedTransaction.existingArtist?.artistId || "",
         artistName: selectedTransaction.artistName,
         title: selectedTransaction.songTitle,
@@ -100,22 +114,40 @@ const Edit2Page = () => {
         url: songMeta.audioUrl || undefined,
       });
 
-      // 2. songRequest 관련 업데이트
-      await FirestoreService.updateSongRequestToComplete({
-        songRequestId: selectedTransaction.songRequestId,
-        userId: selectedTransaction.userId,
-        newSongId,
-      });
-
-      // 3. AutoBrewingTransaction 상태 업데이트
-      await FirestoreService.updateBrewingTransactionStatus(
-        selectedTransaction.transactionId,
-        newSongId,
-        "completed"
+      setCompletedSongs([newSong, ...completedSongs]);
+      setPendingRequests(
+        pendingRequests.filter(
+          (req) => req.songRequestId !== selectedTransaction?.songRequestId
+        )
       );
+      setAutoBrewingTransactions(
+        autoBrewingTransactions.map((trans) =>
+          trans.transactionId === selectedTransaction?.transactionId
+            ? { ...trans, status: "completed", songId: newSong.songId }
+            : trans
+        )
+      );
+
+      // 2. songRequest 관련 업데이트
+      // 3. AutoBrewingTransaction 상태 업데이트
+      await Promise.all([
+        FirestoreService.updateSongRequestToComplete({
+          songRequestId: selectedTransaction.songRequestId,
+          userId: selectedTransaction.userId,
+          newSongId: newSong.songId,
+        }),
+        FirestoreService.updateBrewingTransactionStatus(
+          selectedTransaction.transactionId,
+          newSong.songId,
+          "completed"
+        ),
+      ]);
 
       setIsLoading(false);
       setIsCompleted(true);
+      setTimeout(() => {
+        webViewActions.pressSong(newSong);
+      }, 500);
     } catch (error) {
       console.error("곡 추가 실패:", error);
 
