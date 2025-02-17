@@ -18,6 +18,11 @@ import { FirestoreService } from "../../services/firestore.service";
 import { useModal } from "../../components/modal/useModal";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../lib/firebase";
+import {
+  RequestItemSkeleton,
+  SongImage,
+  SongItemSkeleton,
+} from "../../components/home/skeleton";
 
 // const DUMMY_USER_ID = "T6LQk4Rsp5ZYQb0g4OnBxhfKdco1";
 // 개발할때는 더미유저 넣고 개발. 배포할때는 DUMMY_USER_ID 비우고 사용.
@@ -207,7 +212,7 @@ const HomePage: React.FC = () => {
     }
   };
 
-  if (isInitialLoading || isDataLoading) {
+  if (isInitialLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent"></div>
@@ -230,6 +235,7 @@ const HomePage: React.FC = () => {
   }
 
   if (
+    !isDataLoading &&
     completedSongs.length === 0 &&
     failedPendingOrErrorRequests.length === 0
   ) {
@@ -249,127 +255,140 @@ const HomePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black p-5 pb-20 text-white">
-      <div className="mt-8 mb-12 ml-4">
-        <h1 className="text-2xl font-semibold">
-          {userInfo?.userName || ""}의 음악 공간
-        </h1>
-      </div>
+    <div className="min-h-screen bg-black pb-20 text-white">
+      <div className="max-w-[500px] mx-auto px-5">
+        <div className="mt-8 mb-12">
+          <h1 className="text-2xl font-semibold">
+            {userInfo?.userName || ""}의 음악 공간
+          </h1>
+        </div>
 
-      <div className="space-y-4">
-        {completedSongs.map((song) => (
-          <div
-            key={song.songId}
-            onClick={() => handleSongPress(song)}
-            className="flex items-center gap-3 cursor-pointer group"
-          >
-            <div className="flex items-center flex-1 min-w-0">
-              <div
-                className="w-[100px] h-[56px] rounded overflow-hidden shrink-0"
-                style={{
-                  backgroundImage: `url(${song.thumbnailUrl || song.artwork})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }}
-              />
-              <div className="flex-1 min-w-0 ml-3">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <h3 className="text-[15px] leading-[1.3] font-medium text-white truncate">
-                    {song.title}
-                  </h3>
-                  {song.isAI && (
-                    <span className="shrink-0 px-1 py-0.5 bg-neutral-700 text-neutral-300 text-[11px] rounded">
-                      AI
-                    </span>
-                  )}
-                </div>
-                <p className="text-[13px] text-neutral-400">
-                  {song.artistName}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleShare(song);
-              }}
-              className="shrink-0 p-2 rounded-full hover:bg-neutral-800"
-            >
-              <svg
-                className="w-6 h-6 text-neutral-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </button>
-          </div>
-        ))}
-
-        {failedPendingOrErrorRequests.map((request) => {
-          const matchingTransaction = autoBrewingTransactions.find(
-            (t) =>
-              t.songRequestId === request.songRequestId &&
-              t.status === "pending"
-          );
-
-          return (
-            <div
-              key={request.songRequestId}
-              onClick={() =>
-                matchingTransaction
-                  ? handleTransactionSelect(matchingTransaction)
-                  : handleRequestPress(request)
-              }
-              className="flex items-center gap-3 cursor-pointer group bg-neutral-900 p-3 rounded-lg hover:bg-neutral-800 active:scale-[0.99] transition-all"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <h3 className="text-[15px] leading-[1.3] font-medium text-white truncate">
-                    {request.songTitle}
-                  </h3>
-                </div>
-                <p className="text-[13px] text-neutral-400">
-                  {request.artistName}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs text-neutral-400">
-                  {new Date(
-                    request.requestAt.seconds * 1000
-                  ).toLocaleDateString()}
-                </span>
+        <div className="space-y-4">
+          {isDataLoading ? (
+            <>
+              {[1, 2, 3].map((i) => (
+                <SongItemSkeleton key={`song-skeleton-${i}`} />
+              ))}
+              {[1, 2].map((i) => (
+                <RequestItemSkeleton key={`request-skeleton-${i}`} />
+              ))}
+            </>
+          ) : (
+            <>
+              {completedSongs.map((song) => (
                 <div
-                  className={`px-2 py-1 rounded-md text-xs font-medium ${
-                    matchingTransaction
-                      ? "bg-green-400/10 text-green-400"
-                      : request.status === Status.PENDING
-                      ? "bg-yellow-400/10 text-yellow-400"
-                      : "bg-red-400/10 text-red-400"
-                  }`}
+                  key={song.songId}
+                  onClick={() => handleSongPress(song)}
+                  className="flex items-center gap-3 cursor-pointer group"
                 >
-                  {matchingTransaction
-                    ? "완료"
-                    : request.status === Status.PENDING
-                    ? "대기"
-                    : "실패"}
+                  <div className="flex items-center flex-1 min-w-0">
+                    <SongImage
+                      thumbnailUrl={song.thumbnailUrl}
+                      artwork={song.artwork}
+                      title={song.title}
+                    />
+
+                    <div className="flex-1 min-w-0 ml-3">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <h3 className="text-[15px] leading-[1.3] font-medium text-white truncate">
+                          {song.title}
+                        </h3>
+                        {song.isAI && (
+                          <span className="shrink-0 px-1 py-0.5 bg-neutral-700 text-neutral-300 text-[11px] rounded">
+                            AI
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[13px] text-neutral-400">
+                        {song.artistName}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleShare(song);
+                    }}
+                    className="shrink-0 p-2 rounded-full hover:bg-neutral-800"
+                  >
+                    <svg
+                      className="w-6 h-6 text-neutral-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                  </button>
                 </div>
-              </div>
-            </div>
-          );
-        })}
+              ))}
+
+              {failedPendingOrErrorRequests.map((request) => {
+                const matchingTransaction = autoBrewingTransactions.find(
+                  (t) =>
+                    t.songRequestId === request.songRequestId &&
+                    t.status === "pending"
+                );
+
+                return (
+                  <div
+                    key={request.songRequestId}
+                    onClick={() =>
+                      matchingTransaction
+                        ? handleTransactionSelect(matchingTransaction)
+                        : handleRequestPress(request)
+                    }
+                    className="flex items-center gap-3 cursor-pointer group bg-neutral-900 p-3 rounded-lg hover:bg-neutral-800 active:scale-[0.99] transition-all"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <h3 className="text-[15px] leading-[1.3] font-medium text-white truncate">
+                          {request.songTitle}
+                        </h3>
+                      </div>
+                      <p className="text-[13px] text-neutral-400">
+                        {request.artistName}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-neutral-400">
+                        {new Date(
+                          request.requestAt.seconds * 1000
+                        ).toLocaleDateString()}
+                      </span>
+                      <div
+                        className={`px-2 py-1 rounded-md text-xs font-medium ${
+                          matchingTransaction
+                            ? "bg-green-400/10 text-green-400"
+                            : request.status === Status.PENDING
+                            ? "bg-yellow-400/10 text-yellow-400"
+                            : "bg-red-400/10 text-red-400"
+                        }`}
+                      >
+                        {matchingTransaction
+                          ? "완료"
+                          : request.status === Status.PENDING
+                          ? "대기"
+                          : "실패"}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

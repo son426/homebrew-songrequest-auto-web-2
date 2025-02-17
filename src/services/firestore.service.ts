@@ -12,6 +12,7 @@ import {
   limit,
   serverTimestamp,
   setDoc,
+  documentId,
 } from "firebase/firestore";
 import {
   Collections,
@@ -84,17 +85,24 @@ export class FirestoreService {
   static async getCompletedSongs(songIds: string[]): Promise<Song[]> {
     if (songIds.length === 0) return [];
 
-    const songs: Song[] = [];
+    const chunks = this.chunkArray(songIds, 10);
     const songsRef = collection(this.db, Collections.SONG);
+    const songsPromises = chunks.map(async (chunk) => {
+      const q = query(songsRef, where(documentId(), "in", chunk));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map((doc) => doc.data() as Song);
+    });
 
-    for (const songId of songIds) {
-      const songDoc = await getDoc(doc(songsRef, songId));
-      if (songDoc.exists()) {
-        songs.push(songDoc.data() as Song);
-      }
+    const songsArrays = await Promise.all(songsPromises);
+    return songsArrays.flat();
+  }
+
+  private static chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
     }
-
-    return songs;
+    return chunks;
   }
 
   static async updateSongRequestToComplete({
