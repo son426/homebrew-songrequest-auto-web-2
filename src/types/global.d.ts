@@ -4,6 +4,7 @@ import { User } from "./schema";
 declare global {
   interface Window {
     USER_INFO: User | undefined;
+    [key]: any;
     ReactNativeWebView: {
       postMessage: (message: string) => void;
     };

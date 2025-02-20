@@ -1,12 +1,7 @@
 import { atom } from "recoil";
-import {
-  AutoBrewingTransaction,
-  Song,
-  SongRequest,
-  User,
-} from "./types/schema";
+import { AutoBrewingTransaction, Song, SongRequest } from "./types/schema";
 
-export const userState = atom<User | null>({
+export const userState = atom<any | null>({
   key: "userState",
   default: null,
 });
@@ -39,4 +34,9 @@ export const pendingRequestsState = atom<SongRequest[]>({
 export const autoBrewingTransactionsState = atom<AutoBrewingTransaction[]>({
   key: "autoBrewingTransactionsState",
   default: [],
+});
+
+export const isFirstFetchState = atom({
+  key: "isFirstFetchState",
+  default: true,
 });

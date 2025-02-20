@@ -183,7 +183,9 @@ const Edit2Page = () => {
   const handleNavigateToHome = () => {
     resetTransaction();
     resetSongMeta();
-    navigate(-2);
+    navigate("/", {
+      state: { from: "edit2Page" },
+    });
   };
 
   return (

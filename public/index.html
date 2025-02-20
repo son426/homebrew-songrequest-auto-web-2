@@ -13,7 +13,7 @@
     />
     <link rel="preload" href="%PUBLIC_URL%/static/css/main.css" as="style" /> -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>브루잉</title>
     <style>
       body {
@@ -46,7 +46,7 @@
           style="
             width: 48px;
             height: 48px;
-            border: 4px solid #fbbf24;
+            border: 4px solid #ff6f00;
             border-top-color: transparent;
             border-radius: 50%;
             animation: spin 1s linear infinite;
@@ -54,31 +54,6 @@
         ></div>
       </div>
     </div>
-    <!-- preload 스크립트를 동적으로 추가하는 인라인 스크립트 -->
-    <script>
-      // 메인 엔트리 파일의 preload
-      const addPreloadLinks = () => {
-        const entryPoints = window.__ASSET_MANIFEST__ || {};
-        Object.values(entryPoints).forEach((file) => {
-          if (file.endsWith(".js")) {
-            const preloadLink = document.createElement("link");
-            preloadLink.rel = "preload";
-            preloadLink.as = "script";
-            preloadLink.href = file;
-            document.head.appendChild(preloadLink);
-          }
-          if (file.endsWith(".css")) {
-            const preloadLink = document.createElement("link");
-            preloadLink.rel = "preload";
-            preloadLink.as = "style";
-            preloadLink.href = file;
-            document.head.appendChild(preloadLink);
-          }
-        });
-      };
-
-      // DOM이 로드되면 preload 링크 추가
-      document.addEventListener("DOMContentLoaded", addPreloadLinks);
-    </script>
   </body>
 </html>
+ㅊ

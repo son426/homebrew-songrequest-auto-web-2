@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Song,
   SongRequest,
@@ -10,6 +10,7 @@ import { useRecoilState, useResetRecoilState } from "recoil";
 import {
   autoBrewingTransactionsState,
   completedSongsState,
+  isFirstFetchState,
   pendingRequestsState,
   selectedTransactionState,
   userState,
@@ -36,6 +37,8 @@ const DUMMY_USER_ID = "";
 const WEBVIEW_USER_TIMEOUT_MS = 3000;
 
 const HomePage: React.FC = () => {
+  const location = useLocation();
+
   const [completedSongs, setCompletedSongs] =
     useRecoilState(completedSongsState);
   const [failedPendingOrErrorRequests, setFailedPendingOrErrorRequests] =
@@ -44,6 +47,7 @@ const HomePage: React.FC = () => {
     autoBrewingTransactionsState
   );
   const [userInfo, setUserInfo] = useRecoilState(userState);
+  const [isFirstFetch, setIsFirstFetch] = useRecoilState(isFirstFetchState);
 
   console.log("테스트!!!");
 
@@ -59,51 +63,109 @@ const HomePage: React.FC = () => {
 
   useEffect(() => {
     // 관리자 계정으로 자동 로그인
+    // 2. Firebase 인증 체크
     signInWithEmailAndPassword(auth, "hbrew999@gmail.com", "dhqordjr!?")
-      .then((userCredential) => {
-        // console.log("Admin login success:", userCredential.user);
+      .then(() => {
+        // alert("Firebase 인증 성공");
       })
       .catch((error) => {
-        console.error("Admin login failed:", error);
+        // alert("Firebase 인증 실패: " + error.message);
       });
+  }, []);
+
+  // 가장 먼저 실행될 초기화 체크
+  useEffect(() => {
+    try {
+      // window 객체 존재 여부 체크
+      if (typeof window === "undefined") {
+        throw new Error("window is undefined");
+      }
+
+      // ReactNativeWebView 체크
+      if (typeof window.ReactNativeWebView === "undefined") {
+        throw new Error("ReactNativeWebView is undefined");
+      }
+
+      // 에러 발생 시 네이티브에 메시지 전송
+      const sendErrorToNative = (error: string) => {
+        try {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({
+              type: "ERROR",
+              data: error,
+            })
+          );
+        } catch (e) {
+          // 최후의 수단으로 document body에 에러 표시
+          document.body.innerHTML = `<div style="color: white; padding: 20px;">Error: ${error}</div>`;
+        }
+      };
+
+      // 전역 에러 핸들러 설정
+      window.onerror = function (message, source, lineno, colno, error) {
+        sendErrorToNative(`Global error: ${message} at ${source}:${lineno}`);
+        return true;
+      };
+
+      // 비동기 에러 핸들러
+      window.onunhandledrejection = function (event) {
+        sendErrorToNative(`Unhandled promise rejection: ${event.reason}`);
+      };
+
+      // USER_INFO 체크 시작
+      if (!window.USER_INFO) {
+        sendErrorToNative("USER_INFO is missing");
+      }
+    } catch (error) {
+      // 초기화 과정에서 발생한 에러
+      document.body.innerHTML = `<div style="color: white; padding: 20px;">Initialization Error: ${error}</div>`;
+    }
   }, []);
 
   // 웹뷰 리스너
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-
-    if (window.USER_INFO) {
-      setUserInfo(window.USER_INFO);
-      setIsInitialLoading(false);
-    } else {
-      // DUMMY_USER_ID를 사용하여 개발 환경에서 테스트
-      if (process.env.NODE_ENV === "development") {
-        setUserInfo({
-          userId: DUMMY_USER_ID,
-          userName: "Test User",
-          email: "test@example.com",
-          searchKeywordList: [],
-          likeSongList: [],
-          followArtistList: [],
-          songRequestList: [],
-          playlistList: [],
-          fcmToken: "",
-          tag: {
-            genreList: [],
-            dislikeSongIdList: [],
-          },
-          credit: {
-            balance: 0,
-            referralCode: "",
-          },
-          notificationList: [],
-        });
+    try {
+      if (window.USER_INFO) {
+        // alert("window USER_INFO 존재: " + JSON.stringify(window.USER_INFO));
+        setUserInfo(window.USER_INFO);
         setIsInitialLoading(false);
       } else {
-        timeoutId = setTimeout(() => {
+        // DUMMY_USER_ID를 사용하여 개발 환경에서 테스트
+        if (process.env.NODE_ENV === "development") {
+          // alert("USER_INFO 없음. Development 모드: " + process.env.NODE_ENV);
+          setUserInfo({
+            userId: DUMMY_USER_ID,
+            userName: "Test User",
+            email: "test@example.com",
+            searchKeywordList: [],
+            likeSongList: [],
+            followArtistList: [],
+            songRequestList: [],
+            playlistList: [],
+            fcmToken: "",
+            tag: {
+              genreList: [],
+              dislikeSongIdList: [],
+            },
+            credit: {
+              balance: 0,
+              referralCode: "",
+            },
+            notificationList: [],
+          });
           setIsInitialLoading(false);
-        }, WEBVIEW_USER_TIMEOUT_MS);
+          // alert("개발 환경 더미 데이터 설정 완료");
+        } else {
+          timeoutId = setTimeout(() => {
+            // alert("USER_INFO 타임아웃 발생");
+
+            setIsInitialLoading(false);
+          }, WEBVIEW_USER_TIMEOUT_MS);
+        }
       }
+    } catch (error) {
+      // alert("userInfo 초기화 중 에러: " + error);
     }
 
     // 웹뷰 메시지 리스너 설정
@@ -123,40 +185,51 @@ const HomePage: React.FC = () => {
   // 데이터 fetch
   useEffect(() => {
     const fetchData = async () => {
+      if (!isFirstFetch) return; // 첫 fetch가 아니면 skip
+
       setIsDataLoading(true);
       const userId = userInfo?.userId || DUMMY_USER_ID;
       if (!userId) return;
       try {
+        // alert("Firestore 데이터 fetching 시작");
+
         const [songRequestsData, brewingTransactions] = await Promise.all([
           FirestoreService.getSongRequests(userId),
           FirestoreService.getBrewingTransactions(
             userInfo?.userId || DUMMY_USER_ID
           ),
         ]);
-
-        console.log("songRequestData : ", songRequestsData);
-        console.log("brewingTransactions : ", brewingTransactions);
+        // alert("SongRequests와 BrewingTransactions 로드 완료");
 
         setAutoBrewingTransactions(brewingTransactions);
         setFailedPendingOrErrorRequests(songRequestsData.pendingRequests);
 
-        console.log("1");
-        const completedSongs = await FirestoreService.getCompletedSongs(
-          songRequestsData.completedSongIds
-        );
-        console.log("2");
+        try {
+          const completedSongs = await FirestoreService.getCompletedSongs(
+            songRequestsData.completedSongIds
+          );
+          // alert("CompletedSongs 로드 완료");
+          setCompletedSongs(completedSongs);
+        } catch (error) {
+          // alert("CompletedSongs 로드 실패: " + error);
+        }
 
-        console.log("completedSongs : ", completedSongs);
         setCompletedSongs(completedSongs);
       } catch (error) {
+        // alert("Firestore 데이터 fetching 실패: " + error);
+
         console.error("Error fetching data:", error);
       } finally {
+        setIsFirstFetch(false);
         setIsDataLoading(false);
       }
     };
+    const isFromEdit2 = location.state?.from === "edit2Page";
 
-    fetchData();
-  }, [userInfo, isInitialLoading]);
+    if (userInfo?.userId && !isFromEdit2) {
+      fetchData();
+    }
+  }, [userInfo, location.state]);
 
   const handleTransactionSelect = (transaction: AutoBrewingTransaction) => {
     setSelectedTransaction(transaction);
@@ -266,7 +339,7 @@ const HomePage: React.FC = () => {
       <div className="max-w-[500px] mx-auto px-5">
         <div className="mt-8 mb-12">
           <h1 className="text-2xl font-semibold">
-            {userInfo?.userName || ""}의 음악 공간
+            {userInfo?.userName || "나만"}의 음악 공간
           </h1>
         </div>
 
@@ -347,6 +420,7 @@ const HomePage: React.FC = () => {
                     t.songRequestId === request.songRequestId &&
                     t.status === "pending"
                 );
+                const isClickable = matchingTransaction;
 
                 return (
                   <div
@@ -356,7 +430,14 @@ const HomePage: React.FC = () => {
                         ? handleTransactionSelect(matchingTransaction)
                         : handleRequestPress(request)
                     }
-                    className="flex items-center gap-3 cursor-pointer group bg-neutral-900 p-3 rounded-lg hover:bg-neutral-800 active:scale-[0.99] transition-all"
+                    className={`
+                      flex items-center gap-3 bg-neutral-900 p-3 rounded-lg
+                      ${
+                        isClickable
+                          ? "cursor-pointer border border-neutral-700 hover:bg-neutral-800 active:scale-[0.99] transition-all hover:shadow-md"
+                          : "cursor-default border border-transparent"
+                      }
+                    `}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-0.5">
@@ -384,7 +465,7 @@ const HomePage: React.FC = () => {
                         }`}
                       >
                         {matchingTransaction
-                          ? "완료"
+                          ? "클릭!"
                           : request.status === Status.PENDING
                           ? "대기"
                           : "실패"}
