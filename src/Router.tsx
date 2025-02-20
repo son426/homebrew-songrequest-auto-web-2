@@ -12,6 +12,10 @@ const Edit2Page = lazy(
   () => import(/* webpackPrefetch: true */ "./pages/Edit2Page")
 );
 
+const TestPage = lazy(
+  () => import(/* webpackPrefetch: true */ "./pages/TestPage")
+);
+
 // 로딩 컴포넌트 분리
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-black flex items-center justify-center">
@@ -27,6 +31,7 @@ function Router() {
           <Route path="/" element={<HomePage />} />
           <Route path="/edit1/:transactionId" element={<Edit1Page />} />
           <Route path="/edit2" element={<Edit2Page />} />
+          <Route path="/test" element={<TestPage />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

@@ -5,7 +5,7 @@ import {
   SongRequest,
   Status,
   AutoBrewingTransaction,
-} from "../../types/schema";
+} from "../types/schema";
 import { useRecoilState } from "recoil";
 import {
   autoBrewingTransactionsState,
@@ -14,29 +14,28 @@ import {
   pendingRequestsState,
   selectedTransactionState,
   userState,
-} from "../../atom";
-import SongRequestModalContent from "./components/SongRequestModalContent";
-
+} from "../atom";
 import {
   setupWebViewMessageListener,
   webViewActions,
-} from "../../services/webView.service";
-import { FirestoreService } from "../../services/firestore.service";
-import { useModal } from "../../components/modal/useModal";
+} from "../services/webView.service";
+import { FirestoreService } from "../services/firestore.service";
+import { useModal } from "../components/modal/useModal";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../lib/firebase";
+import { auth } from "../lib/firebase";
 import {
   RequestItemSkeleton,
   SongImage,
   SongItemSkeleton,
-} from "../../components/home/skeleton";
+} from "../components/home/skeleton";
+import SongRequestModalContent from "./home/components/SongRequestModalContent";
 
 // const DUMMY_USER_ID = "ozoJE7tyarOZprogC2ezRAOavlt2";
 // 개발할때는 더미유저 넣고 개발. 배포할때는 DUMMY_USER_ID 비우고 사용.
 const DUMMY_USER_ID = "";
 const WEBVIEW_USER_TIMEOUT_MS = 3000;
 
-const HomePage: React.FC = () => {
+const TestPage: React.FC = () => {
   const location = useLocation();
 
   const [completedSongs, setCompletedSongs] =
@@ -49,8 +48,6 @@ const HomePage: React.FC = () => {
   const [userInfo, setUserInfo] = useRecoilState(userState);
   const [isFirstFetch, setIsFirstFetch] = useRecoilState(isFirstFetchState);
 
-  console.log("테스트!!!");
-
   const [selectedTransaction, setSelectedTransaction] = useRecoilState(
     selectedTransactionState
   );
@@ -61,127 +58,6 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { openModal, closeModal } = useModal();
 
-  useEffect(() => {
-    // 관리자 계정으로 자동 로그인
-    // 2. Firebase 인증 체크
-    signInWithEmailAndPassword(auth, "hbrew999@gmail.com", "dhqordjr!?")
-      .then(() => {
-        // alert("Firebase 인증 성공");
-      })
-      .catch((error) => {
-        // alert("Firebase 인증 실패: " + error.message);
-      });
-  }, []);
-
-  // 가장 먼저 실행될 초기화 체크
-  useEffect(() => {
-    try {
-      // window 객체 존재 여부 체크
-      if (typeof window === "undefined") {
-        throw new Error("window is undefined");
-      }
-
-      // ReactNativeWebView 체크
-      if (typeof window.ReactNativeWebView === "undefined") {
-        // throw new Error("ReactNativeWebView is undefined");
-      }
-
-      // 에러 발생 시 네이티브에 메시지 전송
-      const sendErrorToNative = (error: string) => {
-        try {
-          window.ReactNativeWebView.postMessage(
-            JSON.stringify({
-              type: "ERROR",
-              data: error,
-            })
-          );
-        } catch (e) {
-          // 최후의 수단으로 document body에 에러 표시
-          document.body.innerHTML = `<div style="color: white; padding: 20px;">Error: ${error}</div>`;
-        }
-      };
-
-      // 전역 에러 핸들러 설정
-      window.onerror = function (message, source, lineno, colno, error) {
-        sendErrorToNative(`Global error: ${message} at ${source}:${lineno}`);
-        return true;
-      };
-
-      // 비동기 에러 핸들러
-      window.onunhandledrejection = function (event) {
-        sendErrorToNative(`Unhandled promise rejection: ${event.reason}`);
-      };
-
-      // USER_INFO 체크 시작
-      if (!window.USER_INFO) {
-        sendErrorToNative("USER_INFO is missing");
-      }
-    } catch (error) {
-      // 초기화 과정에서 발생한 에러
-      document.body.innerHTML = `<div style="color: white; padding: 20px;">Initialization Error: ${error}</div>`;
-    }
-  }, []);
-
-  // 웹뷰 리스너
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    try {
-      if (window.USER_INFO) {
-        // alert("window USER_INFO 존재: " + JSON.stringify(window.USER_INFO));
-        setUserInfo(window.USER_INFO);
-        setIsInitialLoading(false);
-      } else {
-        // DUMMY_USER_ID를 사용하여 개발 환경에서 테스트
-        if (process.env.NODE_ENV === "development") {
-          // alert("USER_INFO 없음. Development 모드: " + process.env.NODE_ENV);
-          setUserInfo({
-            userId: DUMMY_USER_ID,
-            userName: "Test User",
-            email: "test@example.com",
-            searchKeywordList: [],
-            likeSongList: [],
-            followArtistList: [],
-            songRequestList: [],
-            playlistList: [],
-            fcmToken: "",
-            tag: {
-              genreList: [],
-              dislikeSongIdList: [],
-            },
-            credit: {
-              balance: 0,
-              referralCode: "",
-            },
-            notificationList: [],
-          });
-          setIsInitialLoading(false);
-          // alert("개발 환경 더미 데이터 설정 완료");
-        } else {
-          timeoutId = setTimeout(() => {
-            // alert("USER_INFO 타임아웃 발생");
-
-            setIsInitialLoading(false);
-          }, WEBVIEW_USER_TIMEOUT_MS);
-        }
-      }
-    } catch (error) {
-      // alert("userInfo 초기화 중 에러: " + error);
-    }
-
-    // 웹뷰 메시지 리스너 설정
-    const cleanup = setupWebViewMessageListener((newUserInfo) => {
-      setUserInfo(newUserInfo);
-      setIsInitialLoading(false);
-      if (timeoutId) clearTimeout(timeoutId);
-    });
-
-    window.updateUserState = setUserInfo;
-    return () => {
-      cleanup();
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, []);
-
   // 데이터 fetch
   useEffect(() => {
     const fetchData = async () => {
@@ -189,6 +65,7 @@ const HomePage: React.FC = () => {
 
       setIsDataLoading(true);
       const userId = userInfo?.userId || DUMMY_USER_ID;
+      console.log("userId : ", userId);
       if (!userId) return;
       try {
         // alert("Firestore 데이터 fetching 시작");
@@ -199,6 +76,9 @@ const HomePage: React.FC = () => {
             userInfo?.userId || DUMMY_USER_ID
           ),
         ]);
+
+        console.log(songRequestsData);
+        console.log(brewingTransactions);
         // alert("SongRequests와 BrewingTransactions 로드 완료");
 
         setAutoBrewingTransactions(brewingTransactions);
@@ -208,6 +88,7 @@ const HomePage: React.FC = () => {
           const completedSongs = await FirestoreService.getCompletedSongs(
             songRequestsData.completedSongIds
           );
+          console.log("completedSongs : ", completedSongs);
           // alert("CompletedSongs 로드 완료");
           setCompletedSongs(completedSongs);
         } catch (error) {
@@ -289,14 +170,6 @@ const HomePage: React.FC = () => {
       openModal(<SongRequestModalContent request={request} />);
     }
   };
-
-  if (isInitialLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-4 border-yellow-400 border-t-transparent"></div>
-      </div>
-    );
-  }
 
   if (!userInfo?.userId) {
     return (
@@ -480,4 +353,4 @@ const HomePage: React.FC = () => {
   );
 };
 
-export default HomePage;
+export default TestPage;
