@@ -36,7 +36,9 @@ const Edit1Page: React.FC = () => {
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [versionGroups, setVersionGroups] = useState<VersionGroup[]>([]);
   const [playerStates, setPlayerStates] = useState<PlayerState[]>([]);
-  const [pitchIndices, setPitchIndices] = useState<{ [version: string]: number }>({});
+  const [pitchIndices, setPitchIndices] = useState<{
+    [version: string]: number;
+  }>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [hasPitchAdjusted, setHasPitchAdjusted] = useState<boolean>(false);
   const isLoadingRef = useRef<boolean>(false);
@@ -65,18 +67,24 @@ const Edit1Page: React.FC = () => {
           setVersionGroups(groups);
 
           // 트랜잭션 데이터를 가져온 후 바로 이미지 프리로드 시작
-          const thumbnails = await fetchAlbumCovers(transactionData.existingArtist?.artistName || "");
+          const thumbnails = await fetchAlbumCovers(
+            transactionData.existingArtist?.artistName || ""
+          );
           await preloadImages(thumbnails);
-          
+
           // 프리로드된 이미지 URL들을 미리 저장
-          setSongMeta((prev) => prev ? {
-            ...prev,
-            preloadedThumbnails: thumbnails,
-          } : {
-            audioUrl: null,
-            artwork: null,
-            preloadedThumbnails: thumbnails,
-          });
+          setSongMeta((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  preloadedThumbnails: thumbnails,
+                }
+              : {
+                  audioUrl: null,
+                  artwork: null,
+                  preloadedThumbnails: thumbnails,
+                }
+          );
         }
       } catch (error) {
         console.error("Error fetching transaction:", error);
@@ -167,13 +175,17 @@ const Edit1Page: React.FC = () => {
 
           setSelectedVersion(index);
           const firstAudioPair =
-            versionGroups[index].pitchGroups[pitchIndices[version] || 0].audioPair;
-          
-          console.log(`재생 시도 - Version ${version}, resultUrl:`, firstAudioPair.resultUrl);
-          
+            versionGroups[index].pitchGroups[pitchIndices[version] || 0]
+              .audioPair;
+
+          console.log(
+            `재생 시도 - Version ${version}, resultUrl:`,
+            firstAudioPair.resultUrl
+          );
+
           const url = new URL(firstAudioPair.resultUrl);
           const encodedUrl = url.toString();
-          
+
           audioRef.current.src = encodedUrl;
           await audioRef.current.load();
           audioRef.current.currentTime = playerStates[index].currentTime;
@@ -188,7 +200,7 @@ const Edit1Page: React.FC = () => {
         if (playerStates[index].isPlaying) {
           await audioRef.current.pause();
         } else {
-          await audioRef.current.play().catch(error => {
+          await audioRef.current.play().catch((error) => {
             console.error("Audio play error:", error);
             alert("오디오 재생 중 오류가 발생했습니다. 다시 시도해주세요.");
           });
@@ -240,21 +252,21 @@ const Edit1Page: React.FC = () => {
 
     if (newPitchIndex !== currentIndex) {
       isLoadingRef.current = true;
-      setPitchIndices(prev => ({
+      setPitchIndices((prev) => ({
         ...prev,
-        [version]: newPitchIndex
+        [version]: newPitchIndex,
       }));
-      
+
       if (audioRef.current) {
         try {
           const newAudioPair = pitchGroups[newPitchIndex].audioPair;
           const currentTime = audioRef.current.currentTime;
           const wasPlaying = playerStates[index]?.isPlaying;
-          
+
           if (wasPlaying) {
             await audioRef.current.pause();
           }
-          
+
           audioRef.current.src = newAudioPair.resultUrl;
           await audioRef.current.load();
           audioRef.current.currentTime = currentTime;
@@ -297,7 +309,9 @@ const Edit1Page: React.FC = () => {
     try {
       const thumbnailsRef = ref(storage, `artistThumbnail/${artistName}`);
       const result = await listAll(thumbnailsRef);
-      const urlPromises = result.items.map((imageRef) => getDownloadURL(imageRef));
+      const urlPromises = result.items.map((imageRef) =>
+        getDownloadURL(imageRef)
+      );
       return await Promise.all(urlPromises);
     } catch (error) {
       console.error("썸네일 이미지 가져오기 실패:", error);
@@ -330,7 +344,7 @@ const Edit1Page: React.FC = () => {
         audioUrl: selectedAudioPair.resultUrl,
         artwork: prev?.artwork || null,
       }));
-      
+
       navigate("/edit2");
     }
   };
@@ -338,9 +352,11 @@ const Edit1Page: React.FC = () => {
   return (
     <div className="min-h-screen bg-black p-5 pb-20 text-white">
       <div className="mt-16 mb-12 ml-4">
-        <h1 className="text-2xl font-semibold">마음에 드는 버전을 골라주세요!</h1>
+        <h1 className="text-2xl font-semibold">
+          마음에 드는 버전을 골라주세요!
+        </h1>
         <p className="mt-2 text-sm text-neutral-400">
-          전반적으로 가장 괜찮은 버전을 골라주세요. <br/>
+          전반적으로 가장 괜찮은 버전을 골라주세요. <br />
           부분 수정은 이후에 할 수 있어요.
         </p>
       </div>
@@ -382,7 +398,11 @@ const Edit1Page: React.FC = () => {
                 <img src={MinusIcon} alt="decrease pitch" className="w-full" />
               </button>
               <span className="min-w-[20px] text-center text-sm text-yellow-400">
-                {versionGroups[index].pitchGroups[pitchIndices[group.version] || 0].pitch}
+                {
+                  versionGroups[index].pitchGroups[
+                    pitchIndices[group.version] || 0
+                  ].pitch
+                }
               </span>
               <button
                 onClick={(e) => handlePitchChange(e, index, "up")}

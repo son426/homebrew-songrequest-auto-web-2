@@ -9,7 +9,7 @@ import {
   selectedSongMetaState,
   selectedTransactionState,
 } from "../atom";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { FirestoreService } from "../services/firestore.service";
 import { webViewActions } from "../services/webView.service";
 
@@ -183,9 +183,8 @@ const Edit2Page = () => {
   const handleNavigateToHome = () => {
     resetTransaction();
     resetSongMeta();
-    navigate("/", {
-      state: { from: "edit2Page" },
-    });
+    navigate(-2);
+    window.history.replaceState(null, "", "/");
   };
 
   return (

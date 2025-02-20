@@ -82,6 +82,17 @@ export class FirestoreService {
     })) as AutoBrewingTransaction[];
   }
 
+  static async fetchUser(userId: string): Promise<User[]> {
+    const userRef = collection(this.db, Collections.USER);
+    const q = query(userRef, where("userId", "==", userId));
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => ({
+      ...doc.data(),
+      userId: doc.id,
+    })) as User[];
+  }
+
   static async getCompletedSongs(songIds: string[]): Promise<Song[]> {
     if (songIds.length === 0) return [];
 

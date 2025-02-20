@@ -6,7 +6,7 @@ import {
   Status,
   AutoBrewingTransaction,
 } from "../../types/schema";
-import { useRecoilState, useResetRecoilState } from "recoil";
+import { useRecoilState } from "recoil";
 import {
   autoBrewingTransactionsState,
   completedSongsState,
@@ -31,7 +31,7 @@ import {
   SongItemSkeleton,
 } from "../../components/home/skeleton";
 
-// const DUMMY_USER_ID = "T6LQk4Rsp5ZYQb0g4OnBxhfKdco1";
+// const DUMMY_USER_ID = "ozoJE7tyarOZprogC2ezRAOavlt2";
 // 개발할때는 더미유저 넣고 개발. 배포할때는 DUMMY_USER_ID 비우고 사용.
 const DUMMY_USER_ID = "";
 const WEBVIEW_USER_TIMEOUT_MS = 3000;
@@ -83,7 +83,7 @@ const HomePage: React.FC = () => {
 
       // ReactNativeWebView 체크
       if (typeof window.ReactNativeWebView === "undefined") {
-        throw new Error("ReactNativeWebView is undefined");
+        // throw new Error("ReactNativeWebView is undefined");
       }
 
       // 에러 발생 시 네이티브에 메시지 전송
