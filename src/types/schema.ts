@@ -33,6 +33,7 @@ export type Song = {
   originalSongId: string; // 새롭게 추가
   isOriginalSong: boolean; // 새롭게 추가
   songMeta: SongMeta;
+  guideId: string;
 };
 
 export type OriginalSong = {
@@ -43,6 +44,7 @@ export type OriginalSong = {
   artistName: string;
   songIdList: string[];
   coverArtistIdList: string[]; // 대비용
+  guideIdList?: string[]; // 가이드 ID 목록 추가 (선택적)
   madeAt: any;
 };
 
@@ -120,7 +122,7 @@ export type HomebrewPlaylist = {
   };
 };
 
-export interface User {
+export type User = {
   userId: string;
   userName: string;
   email: string;
@@ -141,7 +143,7 @@ export interface User {
   };
   notificationList: UserNotification[];
   recentSongIdList?: string[];
-}
+};
 
 export type UserNotification = {
   id: string;
@@ -151,7 +153,7 @@ export type UserNotification = {
   createdAt: any;
 };
 
-export interface CreditTransaction {
+export type CreditTransaction = {
   id: string;
   userId?: string;
   deviceId: string;
@@ -172,9 +174,9 @@ export interface CreditTransaction {
   };
   createdAt: any;
   updatedAt: any;
-}
+};
 
-export interface SongRequest {
+export type SongRequest = {
   songRequestId: string;
   songId: string;
   songTitle: string;
@@ -196,17 +198,19 @@ export interface SongRequest {
   requestAt: any;
   songRequestGroupId?: string;
   index: number;
-}
+  originalSongId?: string;
+  guideId?: string;
+};
 
-export interface Token {
+export type Token = {
   fcmToken: string;
   userName: string;
   email: string;
   platform: string;
   recentlyUseAt: any;
-}
+};
 
-export interface Device {
+export type Device = {
   deviceId: string;
   hashedDeviceId: string;
   fcmToken: string;
@@ -220,25 +224,25 @@ export interface Device {
     [key: string]: any;
   };
   recentlyUseAt: any;
-}
+};
 
-export interface Update {
+export type Update = {
   id: string;
   updateDate: any;
   allUpdateDate: any;
   updateDocumentId: string;
-}
+};
 
-export interface ISongLog {
+export type ISongLog = {
   songId: string;
   logAt: any;
-}
-export interface ISearchLog {
+};
+export type ISearchLog = {
   searchWord: string;
   logAt: any;
-}
+};
 
-export interface DeviceLog {
+export type DeviceLog = {
   deviceId: string;
   likeSongList: ISongLog[];
   playStartList: ISongLog[];
@@ -247,7 +251,7 @@ export interface DeviceLog {
   play90secList: ISongLog[];
   playCompleteList: ISongLog[];
   searchQueryList: ISearchLog[];
-}
+};
 
 export type Guide = {
   id: string;
@@ -255,6 +259,7 @@ export type Guide = {
   isMale: boolean;
   driveId: string;
   searchKeywordList: string[];
+  originalSongId?: string;
 };
 
 export enum Collections {
@@ -312,6 +317,8 @@ export type AutoBrewingTransaction = {
     status: "completed" | "failed";
     error?: string;
   }[];
+  originalSongId?: string;
+  guideId?: string;
 };
 
 export enum Genre {
@@ -434,7 +441,7 @@ export type PendingBrewingTransaction = {
   [key: string]: any;
 };
 
-export interface SongMeta {
+export type SongMeta = {
   audioUrl: string;
   preloadedThumbnails?: string[];
-}
+};

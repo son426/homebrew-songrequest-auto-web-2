@@ -15,14 +15,9 @@ import {
   selectedTransactionState,
   userState,
 } from "../atom";
-import {
-  setupWebViewMessageListener,
-  webViewActions,
-} from "../services/webView.service";
+import { webViewActions } from "../services/webView.service";
 import { FirestoreService } from "../services/firestore.service";
 import { useModal } from "../components/modal/useModal";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../lib/firebase";
 import {
   RequestItemSkeleton,
   SongImage,

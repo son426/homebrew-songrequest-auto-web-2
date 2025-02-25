@@ -8426,7 +8426,7 @@ const DUMMY_USER = {
 
 export const userState = atom<any | null>({
   key: "userState",
-  default: DUMMY_USER,
+  default: null,
 });
 
 export const selectedTransactionState = atom<AutoBrewingTransaction | null>({

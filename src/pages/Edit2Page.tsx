@@ -112,6 +112,8 @@ const Edit2Page = () => {
           tagList: selectedTransaction.existingArtist?.tagList || [],
         },
         url: songMeta.audioUrl || undefined,
+        originalSongId: selectedTransaction?.originalSongId || "",
+        guideId: selectedTransaction?.guideId || "",
       });
 
       setCompletedSongs([newSong, ...completedSongs]);

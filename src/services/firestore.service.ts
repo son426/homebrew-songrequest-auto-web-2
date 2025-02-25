@@ -240,6 +240,8 @@ export class FirestoreService {
     makerUserId,
     tag,
     url,
+    originalSongId,
+    guideId,
   }: {
     artistId: string;
     artistName: string;
@@ -251,8 +253,9 @@ export class FirestoreService {
     makerUserId: string;
     tag: { genreList: string[]; [key: string]: any };
     url?: string;
+    originalSongId: string;
+    guideId: string;
   }): Promise<Song> {
-    const songCollectionRef = collection(this.db, Collections.SONG);
     const artistDocRef = doc(this.db, Collections.ARTIST, artistId);
 
     try {
@@ -297,6 +300,7 @@ export class FirestoreService {
         originalSongId: "",
         isOriginalSong: false,
         searchKeywordList,
+        guideId: "",
         songMeta: {
           audioUrl: "",
         },
